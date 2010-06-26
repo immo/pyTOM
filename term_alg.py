@@ -1,0 +1,185 @@
+# coding: utf-8
+#
+#   Copyright (C) 2010   C.D. Immanuel Albrecht
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+
+from __future__ import print_function
+
+class Term(object):
+    """Abstract base class for terms"""
+    def __init__(self):
+        raise Exception('Term is an abstract class that cannot be instantiated')
+
+    def variables(self):
+        """returns the set of all free variables that occur in the term"""
+        raise Exception('Term is not defined!')
+
+    def constants(self):
+        """returns the set of all constants that occur in the term"""
+        raise Exception('Term is not defined!')
+
+    def bound(self):
+        """returns the set of all intermediate elements in the term"""
+        raise Exception('Term is not defined!')
+
+    def functions(self):
+        """returns the set of all unbound non-0-ary symbols in the term"""
+        raise Exception('Term is not defined!')
+
+    def boundfunctions(self):
+        """returns the set of all bound non-0-ary symbols in the term"""
+        raise Exception('Term is not defined!')
+
+    def subterms(self):
+        """returns an ordered tuple that consists of all second level subterms"""
+        raise Exception('Term is not defined!')
+
+    def isbound(self):
+        """returns True, if the main term part (not the necessarily the subterms) has been bound to a function"""
+        raise Exception('Term is not defined!')
+
+    def bindfunction(self,name,fn):
+        """returns a term where every occurence of name is bound to fn"""
+        raise Exception('Abstract Term cannot bind function!')
+
+    def bindvariable(self,name,item):
+        """returns a term where every occurence of name is bound to fn"""
+        raise Exception('Abstract Term cannot bind variable!')
+
+    def bindconstant(self,name,item):
+        """returns a term where every occurence of name is bound to fn"""
+        raise Exception('Abstract Term cannot bind constant!')        
+
+    def __add__(self,r):
+        return FunctionTerm('+',False,self,r)
+
+    def __mul__(self,r):
+        return FunctionTerm('*',False,self,r)
+
+    def __mod__(self,r):
+        return FunctionTerm('%',False,self,r)
+
+    def __pow__(self,r):
+        return FunctionTerm('**',False,self,r)
+
+    def __sub__(self,r):
+        return FunctionTerm('-',False,self,r)
+
+    def __div__(self,r):
+        return FunctionTerm('/',False,self,r)
+
+
+class NullaryTerm(Term):
+    """Class for 0-ary terms (elementary terms)"""
+    def __new__(type,*args):
+        if not '_list' in type.__dict__:
+            type._list = {}
+        if args in type._list:
+            return type._list[args]
+        type._list[args] = object.__new__(type)
+            
+        return type._list[args]
+
+    def __init__(self, element, t):
+        self._constants = set()
+        self._variables = set()
+        self._bound = set()
+        if not t in ['x','c','b']:
+            raise Exception('NullaryTerm must either be of type x,c or b!')
+        elif t == 'x':
+            self._variables = set((element,))
+        elif t == 'c':
+            self._constants = set((element,))
+        elif t == 'b':
+            self._bound = set((element,))            
+        self._element = element
+        self._b = t == 'b'
+
+    def constants(self):
+        return self._constants
+
+    def variables(self):
+        return self._variables
+
+    def bound(self):
+        return self._bound
+
+    def subterms(self):
+        return ()
+
+    def functions(self):
+        return set()
+
+    def boundfunctions(self):
+        return set()
+
+    def isbound(self):
+        return self._b
+
+class FunctionTerm(Term):
+    """Class for non-0-ary terms"""
+    def __new__(type,*args):
+        if not '_list' in type.__dict__:
+            type._list = {}
+        if args in type._list:
+            return type._list[args]
+        type._list[args] = object.__new__(type)
+            
+        return type._list[args]
+
+    def __init__(self, element, b, *subterms):
+        for t in subterms:
+            if not isinstance(t,Term):
+                raise Exception('FunctionTerm: subterms must be Terms!')
+        if not type(b) == bool :
+            raise Exception('FunctionTerm: b must be boolean (bound)')
+        if b:
+            self._bound = set((element,))
+            self._functions = set()
+        else:
+            self._bound = set()
+            self._functions = set((element,))
+        self._element = element
+        self._subterms = subterms
+        self._b = b
+
+    def constants(self):
+        return set().union(*[t.constants() for t in self.subterms()])
+
+    def variables(self):
+        return set().union(*[t.variables() for t in self.subterms()])
+
+    def bound(self):
+        return set().union(*[t.bound() for t in self.subterms()])
+
+    def boundfunctions(self):
+        return set().union(self._bound,\
+                           *[t.boundfunctions() for t in self.subterms()])
+
+    def functions(self):
+        return set().union(self._functions,\
+                           *[t.functions() for t in self.subterms()])
+
+    def subterms(self):
+        return self._subterms
+
+    def isbound(self):
+        return self._b
+
+    
+    
+
