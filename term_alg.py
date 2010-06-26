@@ -62,7 +62,11 @@ class Term(object):
 
     def bindconstant(self,name,item):
         """returns a term where every occurence of name is bound to fn"""
-        raise Exception('Abstract Term cannot bind constant!')        
+        raise Exception('Abstract Term cannot bind constant!')
+
+    def evaluate(self):
+        """returns a partially evaluated term, possibly a bound NullaryTerm"""
+        raise Exception('Abstract Term cannot evaluate')
 
     def __add__(self,r):
         return FunctionTerm('+',False,self,r)
@@ -108,6 +112,7 @@ class NullaryTerm(Term):
             self._bound = set((element,))            
         self._element = element
         self._b = t == 'b'
+        self._t = t
 
     def constants(self):
         return self._constants
@@ -129,6 +134,26 @@ class NullaryTerm(Term):
 
     def isbound(self):
         return self._b
+
+    def getelement(self):
+        return self._element
+
+    def bindfunction(self,name,fn):
+        return self
+    
+    def bindvariable(self,name,item):
+        if self._t == 'x' and self._element == name:
+            return NullaryTerm(item,'b')
+        return self
+    
+    def bindconstant(self,name,item):
+        if self._t == 'c' and self._element == name:
+            return NullaryTerm(item,'b')
+        return self
+
+    def evaluate(self):
+        return self
+    
 
 class FunctionTerm(Term):
     """Class for non-0-ary terms"""
@@ -180,6 +205,30 @@ class FunctionTerm(Term):
     def isbound(self):
         return self._b
 
+    def bindfunction(self,name,fn):
+        if (not self._b) and self._element == name:
+            return FunctionTerm(fn,True,\
+                                *[t.bindfunction(name,fn) for t in self._subterms])
+        return FunctionTerm(self._element,self._b,\
+                            *[t.bindfunction(name,fn) for t in self._subterms])
+    
+    def bindvariable(self,name,item):
+        return FunctionTerm(self._element,self._b,\
+                        *[t.bindvariable(name,item) for t in self._subterms])
+    
+    def bindconstant(self,name,item):
+        return FunctionTerm(self._element,self._b,\
+                        *[t.bindconstant(name,item) for t in self._subterms])
+
+    def evaluate(self):
+        ev_subterms = [t.evaluate() for t in self._subterms]
+        if not self._b:
+            return FunctionTerm(self._element,self._b,*ev_subterms)
+        for t in ev_subterms:
+            if not (isinstance(t,NullaryTerm) and t.isbound()):
+                return FunctionTerm(self._element,self._b,*ev_subterms)
+        y = self._element(*[t.getelement() for t in ev_subterms])
+        return NullaryTerm(y,'b')
     
     
 
