@@ -160,9 +160,13 @@ class AtomarConstraint(Constraint):
     def __str__(self):
         return str(self._name)
 
+def PseudoNormalize(c):
+    """returns the Disjunction-Conjunction-Closure of c"""
+    return DisjunctionConstraint(ConjunctionConstraint(c))
+
 def Atom(name,fn=lambda x:False):
     """returns a new atomar constraint, possibly symbolic"""
-    return AtomarConstraint(name,fn)
+    return PseudoNormalize(AtomarConstraint(name,fn))
     
 def ZeroConstraint():
     """returns the True-projection constraint"""
