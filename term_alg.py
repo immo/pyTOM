@@ -162,6 +162,14 @@ class NullaryTerm(Term):
 
     def evaluate(self):
         return self
+
+    def __str__(self):
+        if self._b:
+            return str(self._element)
+        elif self._t == 'x':
+            return 'X'+str(self._element)
+        else:
+            return 'C'+str(self._element)
     
 def Constant(x):
     """wrapper for NullaryTerm(x,'c')"""
@@ -265,6 +273,15 @@ class FunctionTerm(Term):
                 return FunctionTerm(self._element,self._b,*ev_subterms)
         y = self._element(*[t.getelement() for t in ev_subterms])
         return NullaryTerm(y,'b')
-    
+
+    def __str__(self):
+        if len(self._subterms) == 1:
+            return str(self._element)+'('+str(self._subterms[0])+')'
+        elif len(self._subterms) == 2:
+            return '('+str(self._subterms[0])+" "+str(self._element)+" "+\
+                   str(self._subterms[1])+')'
+        else:
+            return str(self._element)+'('+\
+                   ", ".join([str(x) for x in self._subterms])+')'
     
 
