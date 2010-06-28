@@ -19,6 +19,8 @@
 
 from __future__ import print_function
 
+import term_alg as TA
+
 #
 #  ##   #######        ####
 #  ##   ##    ##      ##
@@ -91,10 +93,37 @@ class Ring(object):
         given, returns the neutral element"""
         raise Exception('Ring multiplication not defined!')
 
+    def inv(self,e):
+        """Returns the additive inverse of the element e"""
+        raise Exception('Ring additive-inversion not defined!')
+
+    def Zlmul(self,z,e):
+        """Returns (e+e+...+e), the z-fold sum of e"""
+        if not type(z) in [int,long]:
+            raise Exception('Invalid left-Z-multiplication with non-integer on the left!')
+        if z == 0:
+            return self.add()
+        elif z > 1:
+            return self.add(*[e for x in range(z)])
+        elif z < -1:
+            i = self.inv(e)
+            return self.add(*[i for x in range(-z)])
+        elif z == 1:
+            return e
+        elif z == -1:
+            return self.inv(e)
+
     def gen(self):
         """Returns a finite generating set (if exists), i.e. a set such that
         every ring element is representable as finite sum of generating elements"""
         raise Exception('Ring does not have a finite generator!')
+
+    def getterm(self,item):
+        """Returns a term in variables and constants that evaluates to a NullaryTerm
+        bound to item, when every constant is bound via __call__ and every variable
+        is bound as n-th tuple-part of gen(), '+' is bound to add(..) and '*' is
+        bound to mul(..) and '.' is bound to Zlmul(..)"""
+        raise Exception('Ring does not give terms in generators for elements!')
 
     def test(self):
         """Returns a set of EquivalenceTests that is sufficient to tell whether a morphism
@@ -225,8 +254,15 @@ class RingZn(Ring):
     def mul(self,*elements):
         return reduce(lambda x,y:x*y, elements, 1) % self._n
 
+    def inv(self,e):
+        return (-e) % self._n
+
+    def Zlmul(self,z,e):
+        return self.mul(z,e)
+
     def gen(self):
         return (1,)
+
 
     def test(self):
         return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1),\
@@ -254,6 +290,12 @@ class RingZ(Ring):
 
     def mul(self,*elements):
         return reduce(lambda x,y:x*y, elements, 1)
+
+    def inv(self,e):
+        return -e
+
+    def Zlmul(self,z,e):
+        return self.mul(z,e)    
 
     def gen(self):
         return (1,)

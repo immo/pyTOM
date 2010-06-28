@@ -154,6 +154,21 @@ class NullaryTerm(Term):
     def evaluate(self):
         return self
     
+def Constant(x):
+    """wrapper for NullaryTerm(x,'c')"""
+    return NullaryTerm(x,'c')
+
+def Variable(x):
+    """wrapper for NullaryTerm(x,'x')"""
+    return NullaryTerm(x,'x')
+
+def Bound(x):
+    """wrapper for NullaryTerm(x,'b')"""
+    return NullaryTerm(x,'b')
+
+def ZBound(z,x):
+    """wrapper for FunctionTerm('.',False,Bound(z),Bound(x))"""
+    return FunctionTerm('.',False,Bound(z),Bound(x))
 
 class FunctionTerm(Term):
     """Class for non-0-ary terms"""
