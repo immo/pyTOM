@@ -103,17 +103,17 @@ class NullaryTerm(Term):
         return type._list[args]
 
     def __init__(self, element, t):
-        self._constants = set()
-        self._variables = set()
-        self._bound = set()
+        self._constants = frozenset()
+        self._variables = frozenset()
+        self._bound = frozenset()
         if not t in ['x','c','b']:
             raise Exception('NullaryTerm must either be of type x,c or b!')
         elif t == 'x':
-            self._variables = set((element,))
+            self._variables = frozenset((element,))
         elif t == 'c':
-            self._constants = set((element,))
+            self._constants = frozenset((element,))
         elif t == 'b':
-            self._bound = set((element,))            
+            self._bound = frozenset((element,))            
         self._element = element
         self._b = t == 'b'
         self._t = t
@@ -131,10 +131,10 @@ class NullaryTerm(Term):
         return ()
 
     def functions(self):
-        return set()
+        return frozenset()
 
     def boundfunctions(self):
-        return set()
+        return frozenset()
 
     def isbound(self):
         return self._b
@@ -213,31 +213,31 @@ class FunctionTerm(Term):
         if not type(b) == bool :
             raise Exception('FunctionTerm: b must be boolean (bound)')
         if b:
-            self._bound = set((element,))
-            self._functions = set()
+            self._bound = frozenset((element,))
+            self._functions = frozenset()
         else:
-            self._bound = set()
-            self._functions = set((element,))
+            self._bound = frozenset()
+            self._functions = frozenset((element,))
         self._element = element
         self._subterms = subterms
         self._b = b
 
     def constants(self):
-        return set().union(*[t.constants() for t in self.subterms()])
+        return frozenset(set().union(*[t.constants() for t in self.subterms()]))
 
     def variables(self):
-        return set().union(*[t.variables() for t in self.subterms()])
+        return frozenset(set().union(*[t.variables() for t in self.subterms()]))
 
     def bound(self):
-        return set().union(*[t.bound() for t in self.subterms()])
+        return frozenset(set().union(*[t.bound() for t in self.subterms()]))
 
     def boundfunctions(self):
-        return set().union(self._bound,\
-                           *[t.boundfunctions() for t in self.subterms()])
+        return frozenset(set().union(self._bound,\
+                           *[t.boundfunctions() for t in self.subterms()]))
 
     def functions(self):
-        return set().union(self._functions,\
-                           *[t.functions() for t in self.subterms()])
+        return frozenset(set().union(self._functions,\
+                           *[t.functions() for t in self.subterms()]))
 
     def subterms(self):
         return self._subterms
