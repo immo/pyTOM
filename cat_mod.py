@@ -309,6 +309,17 @@ class RingZ(Ring):
         return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1))\
                 ,)
 
+def evaluateInRing(term,ring,varmap):
+    """Evaluates a term in a ring as far as possible, where varmap is a
+    dictionary that will be used to map variables to ring objects"""
+    t = term
+    for v in term.variables():
+        t = t.bindvariable(v,varmap[v])
+    for c in term.constants():
+        t = t.bindconstant(c,ring(c))
+    return t.bindfunction('+',ring.add).bindfunction('*',ring.mul)\
+           .bindfunction('.',ring.Zlmul).evaluate()
+
 #
 #  ##   ##    ####    #####     ##   ##   ##       ######    #####
 #  ### ###   ##  ##   ##   ##   ##   ##   ##       ##       ##
