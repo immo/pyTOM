@@ -24,6 +24,30 @@ class Constraint(object):
         raise Exception('Constraint is an abstract class that cannot be'+\
                         ' instantiated')
 
-    def __call__(self,object):
-        """Returns True, if object satisfies the constraint, False otherwise"""
+    def __call__(self,obj):
+        """Returns True, if obj satisfies the constraint, False otherwise"""
         raise Exception('Constraint satisfaction not defined!')
+
+class ZeroConstraint(Constraint):
+    def __new__(type,*args):
+        if not '_the_instance' in type.__dict__:
+            type._the_instance = object.__new__(type)
+        return type._the_instance
+        
+    def __init__(self):
+        pass
+
+    def __call__(self,obj):
+        return True
+
+class OneConstraint(Constraint):
+    def __new__(type,*args):
+        if not '_the_instance' in type.__dict__:
+            type._the_instance = object.__new__(type)
+        return type._the_instance
+        
+    def __init__(self):
+        pass
+
+    def __call__(self,obj):
+        return False
