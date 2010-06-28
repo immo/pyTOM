@@ -28,6 +28,14 @@ class Constraint(object):
         """Returns True, if obj satisfies the constraint, False otherwise"""
         raise Exception('Constraint satisfaction not defined!')
 
+    def __or__(self,r):
+        """Returns the disjunction of self and r"""
+        return DisjunctionConstraint(self,r)
+
+    def __and__(self,r):
+        """returns the conjunction of self and r"""
+        return DisjunctionConstraint(ConjunctionConstraint(self,r))
+
 class OneConstraint(Constraint):
     """An all-rejecting constraint singleton class"""
     def __new__(type,*args):
@@ -73,7 +81,7 @@ class ConjunctionConstraint(Constraint):
         elif len(self._constraints) == 1:
             return str(tuple(self._constraints)[0])
         else:
-            return ' ^ '.join([str(x) for x in self._constraints])
+            return '^'.join([str(x) for x in self._constraints])
 
 def flattenDisjConstraints(c):
     disj_c = [l for l in c if isinstance(l,DisjunctionConstraint)]
@@ -83,14 +91,17 @@ def flattenDisjConstraints(c):
     for x in conj_c:
         disjunctions = [d for d in x._constraints \
                         if isinstance(d,DisjunctionConstraint)]
-        other = [o for o in x._constraints \
-                 if not isinstance(o,DisjunctionConstraint)]
-        if not other:
-            other = [ConjunctionConstraint()]
-        for d in disjunctions:
-            other = [ConjunctionConstraint(d1,o) for o in other\
-                     for d1 in d._constraints]
-        plain_conjunctions = plain_conjunctions.union(other)
+        if not disjunctions:
+            plain_conjunctions.add(x)
+        else:
+            other = [o for o in x._constraints \
+                     if not isinstance(o,DisjunctionConstraint)]
+            if not other:
+                other = [ConjunctionConstraint()]
+            for d in disjunctions:
+                other = [ConjunctionConstraint(d1,o) for o in other\
+                         for d1 in d._constraints]
+            plain_conjunctions = plain_conjunctions.union(other)
             
     s = frozenset(plain_conjunctions.union(*[x._constraints for x in disj_c]))
     if ConjunctionConstraint() in s:
@@ -125,9 +136,46 @@ class DisjunctionConstraint(Constraint):
             return str(tuple(self._constraints)[0])
         else:
             return '('+' v '.join([str(x) for x in self._constraints])+')'
+
+class AtomarConstraint(Constraint):
+    """Constraint with symbolic name and given evaluation function"""
+    def __new__(type,*args):
+        if not '_list' in type.__dict__:
+            type._list = {}
+        if args in type._list:
+            return type._list[args]
+        type._list[args] = object.__new__(type)
+            
+        return type._list[args]
+    
+    def __init__(self, name, test):
+        self._name = name
+        self._test = test
+
+    def __call__(self,obj):
+        if self._test(obj):
+            return True
+        return False
+
+    def __str__(self):
+        return str(self._name)
+
+def Atom(name,fn=lambda x:False):
+    """returns a new atomar constraint, possibly symbolic"""
+    return AtomarConstraint(name,fn)
     
 def ZeroConstraint():
+    """returns the True-projection constraint"""
     return DisjunctionConstraint(ConjunctionConstraint())
 
 def OneConstraint():
+    """returns the False-projection constraint"""
     return DisjunctionConstraint()
+
+if __name__ == '__main__':
+    A = Atom('A')
+    B = Atom('B')
+    C = Atom('C')
+    D = Atom('D')
+    Top = ZeroConstraint()
+    Bottom = OneConstraint()
