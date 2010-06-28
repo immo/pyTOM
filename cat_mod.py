@@ -263,6 +263,8 @@ class RingZn(Ring):
     def gen(self):
         return (1,)
 
+    def getterm(self,e):
+        return TA.ZConstant(e,1)
 
     def test(self):
         return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1),\
@@ -299,6 +301,9 @@ class RingZ(Ring):
 
     def gen(self):
         return (1,)
+
+    def getterm(self,e):
+        return TA.ZConstant(e,1)
 
     def test(self):
         return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1))\

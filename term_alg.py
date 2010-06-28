@@ -179,6 +179,14 @@ def ZBound(z,x):
     """wrapper for FunctionTerm('.',False,Bound(z),Bound(x))"""
     return FunctionTerm('.',False,Bound(z),Bound(x))
 
+def ZVariable(z,x):
+    """wrapper for FunctionTerm('.',False,Bound(z),Variable(x))"""
+    return FunctionTerm('.',False,Bound(z),Variable(x))
+
+def ZConstant(z,x):
+    """wrapper for FunctionTerm('.',False,Bound(z),Constant(x))"""
+    return FunctionTerm('.',False,Bound(z),Constant(x))
+
 class FunctionTerm(Term):
     """Class for non-0-ary terms"""
     def __new__(type,*args):
