@@ -64,6 +64,10 @@ class Term(object):
         """returns a term where every occurence of name is bound to fn"""
         raise Exception('Abstract Term cannot bind constant!')
 
+    def rebindnullary(self,fn):
+        """returns a term where every bound nullary term is mapped by fn"""
+        raise Exception('Abstract Term cannot bind constant!')
+
     def evaluate(self):
         """returns a partially evaluated term, possibly a bound NullaryTerm"""
         raise Exception('Abstract Term cannot evaluate')
@@ -151,6 +155,11 @@ class NullaryTerm(Term):
             return NullaryTerm(item,'b')
         return self
 
+    def rebindnullary(self,fn):
+        if self._t == 'b':
+            return NullaryTerm(fn(self._element),'b')
+        return self
+
     def evaluate(self):
         return self
     
@@ -234,6 +243,10 @@ class FunctionTerm(Term):
     def bindconstant(self,name,item):
         return FunctionTerm(self._element,self._b,\
                         *[t.bindconstant(name,item) for t in self._subterms])
+
+    def rebindnullary(self,fn):
+        return FunctionTerm(self._element,self._b,\
+                        *[t.rebindnullary(fn) for t in self._subterms])
 
     def evaluate(self):
         ev_subterms = [t.evaluate() for t in self._subterms]
