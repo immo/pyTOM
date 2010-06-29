@@ -397,7 +397,55 @@ class RingAsModule(Module):
         return (self._ring(1),)
 
     def test(self):
+        return () #TODO return test based on rings test
+
+class NdimRingModule(Module):
+    """Class that will allow a Ring^n to be viewed as Module over the Ring"""
+    def __new__(type,*args):
+        if not '_list' in type.__dict__:
+            type._list = {}
+        if args in type._list:
+            return type._list[args]
+        type._list[args] = object.__new__(type)
+            
+        return type._list[args]
+    
+    def __init__(self, ring, dimension):
+        if not isinstance(ring,Ring):
+            raise Exception('NdimRingModule needs a Ring as domain')
+        if not type(dimension) in [int,long]:
+            raise Exception('NdimRingModule needs an integer dimension')
+        self._ring = ring
+        self._dim = dimension
+
+    def __contains__(self,item):
+        if type(item) != tuple:
+            return False
+        for i in item:
+            if not i in self._ring:
+                return False
+        return True
+
+    def add(self,*elements):
+        return tuple([self._ring.add(*[e[i] for e in elements])\
+                      for i in range(self._dim)])
+
+    def lmul(self,scalar,item):
+        return tuple([self._ring.mul(scalar,item[i])\
+                      for i in range(self._dim)])
+        
+    def ring(self):
+        return self._ring
+
+    def gen(self): 
+        unit = self._ring(1)
+        zero = self._ring(0)
+        return tuple([tuple([zero]*i+[unit]+[zero]*(self._dim-i-1))\
+                          for i in range(self._dim)])
+
+    def test(self): #TODO!
         return ()
+
     
 class ModuleHom(object):
     """Base class for module homomorphisms"""
