@@ -20,42 +20,8 @@
 from __future__ import print_function
 
 import term_alg as TA
+import constraints as CON
 
-#
-#  ##   #######        ####
-#  ##   ##    ##      ##
-#  ##   ##    ##      ##
-#  ##   ##    ##       ####
-#  ##   ##  ###   ##      ##
-#  ##   #####     ##  #####
-#
-
-class EquivalenceTest(object):
-    """Base class for testing equivalences"""
-    def __new__(type,*args):
-        if not '_list' in type.__dict__:
-            type._list = {}
-        if args in type._list:
-            return type._list[args]
-        type._list[args] = object.__new__(type)
-            
-        return type._list[args]
-
-    def __init__(self,*parts):
-        for p in parts:
-            if not type(p) == type(lambda x:0):
-                raise Exception('EquivalenceTest requires a set of monary functions!')
-        self._parts = parts
-
-    def __call__(self, candidate):
-        """Checks whether the candidate fullfills the equivalence"""
-        if len(self._parts) < 2:
-            return True
-        y = self._parts[0](candidate)
-        for f in self._parts[1:]:
-            if not (f(candidate) == y):
-                return False
-        return True
 #
 #  ######    ##    ##    ##    #####     ####
 #  ##   ##   ##    ####  ##   ##        ##
@@ -126,9 +92,12 @@ class Ring(object):
         raise Exception('Ring does not give terms in generators for elements!')
 
     def test(self):
-        """Returns a set of EquivalenceTests that is sufficient to tell whether a morphism
-        defined by the images of gen() that respects 0 and 1 is also a RingHom"""
+        """Returns a set of EquivalenceTermConstraints that is sufficient to
+        tell whether a morphism defined by the images of gen() that
+        respects 0 and 1 is also a RingHom"""
         raise Exception('Ring does not have a testing set for homomorphisms')
+
+testRingHom = CON.Eq(TA.C(0),TA.f(TA.C(0))) & CON.Eq(TA.C(1),TA.f(TA.C(1)))
 
 class RingHom(object):
     """Base class for ring homomorphisms"""
@@ -267,9 +236,8 @@ class RingZn(Ring):
         return TA.ZConstant(e,1)
 
     def test(self):
-        return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1),\
-                                lambda f:f.cod().add(*((f(1),)*(self._n+1))))\
-                ,)
+        return frozenset([CON.Eq(TA.f(TA.C(1)),TA.C(1),\
+                                 TA.Z(self._n+1,TA.f(TA.C(1))))])
 
 class RingZ(Ring):
     """Ring class for integers"""
@@ -306,8 +274,7 @@ class RingZ(Ring):
         return TA.ZConstant(e,1)
 
     def test(self):
-        return (EquivalenceTest(lambda f:f(1), lambda f:f.cod()(1))\
-                ,)
+        return frozenset()
 
 def evaluateInRing(term,ring,varmap):
     """Evaluates a term in a ring as far as possible, where varmap is a

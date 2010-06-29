@@ -219,6 +219,10 @@ ZC = ZConstant
 ZF = ZFunction
 Z = ZLMul
 
+def f(*terms):
+    """wrapper for FunctionTerm('f',False,*terms)"""
+    return FunctionTerm('f',False,*terms)
+
 class FunctionTerm(Term):
     """Class for non-0-ary terms"""
     def __new__(type,*args):
