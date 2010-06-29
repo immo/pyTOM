@@ -240,6 +240,11 @@ class EqualityTermConstraints(Constraint):
     def __and__(self,r):
         return EqualityTermConstraints(*(self._eqs | r._eqs))
 
+    def __str__(self):
+        def eqstring(eq):
+            return "=".join([str(x) for x in eq])
+        return '[ ' + " & ".join([eqstring(x) for x in self._eqs])+ ' ]'
+
 def Eq(*terms):
     """Short for EqualityTermConstraints(terms), a single equation"""
     return EqualityTermConstraints(terms)
