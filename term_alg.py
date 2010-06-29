@@ -195,6 +195,30 @@ def ZConstant(z,x):
     """wrapper for FunctionTerm('.',False,Bound(z),Constant(x))"""
     return FunctionTerm('.',False,Bound(z),Constant(x))
 
+def Function(symbol,*terms):
+    """wrapper for FunctionTerm(symbol,False,*terms)"""
+    return FunctionTerm(symbol,False,*terms)
+
+def ZFunction(z,symbol,*terms):
+    """wrapper for FunctionTerm('.',False,Bound(z),Function(symbol,*terms))"""
+    return FunctionTerm('.',False,Bound(z),Function(symbol,*terms))
+
+def ZLMul(z,term):
+    """wrapper for FunctionTerm('.',False,Bound(z),term)"""
+    return FunctionTerm('.',False,Bound(z),term)
+
+# even shorter
+
+C = Constant
+X = Variable
+B = Bound
+F = Function
+ZB = ZBound
+ZX = ZVariable
+ZC = ZConstant
+ZF = ZFunction
+Z = ZLMul
+
 class FunctionTerm(Term):
     """Class for non-0-ary terms"""
     def __new__(type,*args):
