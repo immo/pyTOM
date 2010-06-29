@@ -18,6 +18,8 @@
 
 from __future__ import print_function
 
+import term_alg as TA
+
 class Constraint(object):
     """Abstract class modelling a constraint"""
     def __init__(self):
@@ -36,18 +38,16 @@ class Constraint(object):
         """returns the conjunction of self and r"""
         return DisjunctionConstraint(ConjunctionConstraint(self,r))
 
-class OneConstraint(Constraint):
-    """An all-rejecting constraint singleton class"""
-    def __new__(type,*args):
-        if not '_the_instance' in type.__dict__:
-            type._the_instance = object.__new__(type)
-        return type._the_instance
-        
-    def __init__(self):
-        pass
-
-    def __call__(self,obj):
-        return False
+    def and_domains(self):
+        """returns a set of domains that the constraint is part of, useful for
+        simplification of general constraints where possible"""
+        return frozenset()
+    
+    def or_domains(self):
+        """returns a set of domains that the constraint is part of, useful for
+        simplification of general constraints where possible"""
+        return frozenset()
+    
 
 def flattenConjConstraints(c):
     conj_c = [l for l in c if isinstance(l,ConjunctionConstraint)]
@@ -82,6 +82,7 @@ class ConjunctionConstraint(Constraint):
             return str(tuple(self._constraints)[0])
         else:
             return '^'.join([str(x) for x in self._constraints])
+
 
 def flattenDisjConstraints(c):
     disj_c = [l for l in c if isinstance(l,DisjunctionConstraint)]
@@ -160,6 +161,7 @@ class AtomarConstraint(Constraint):
     def __str__(self):
         return str(self._name)
 
+
 def PseudoNormalize(c):
     """returns the Disjunction-Conjunction-Closure of c"""
     return DisjunctionConstraint(ConjunctionConstraint(c))
@@ -183,3 +185,57 @@ if __name__ == '__main__':
     D = Atom('D')
     Top = ZeroConstraint()
     Bottom = OneConstraint()
+
+def flattenEqTermArgs(eqs):
+    eq_set = []
+    for tn in eqs:
+        if len(tn) > 1:
+            ts = set(tn)
+            in_eqs = [e for e in eq_set if ts & e]
+            if len(in_eqs) == 1:
+                in_eqs[0].update(ts)
+            else:
+                for e in in_eqs:
+                    ts.update(e)
+                    eq_set.remove(e)
+                eq_set.append(ts)
+    return frozenset([frozenset(e) for e in eq_set])
+
+class EqualityTermConstraints(Constraint):
+    """class for constraints that equalities on mapped terms,
+    i.e. we have a list of tuples like (t_1, .., t_n) which
+    represent the formal equation t_1 = ... = t_n. Then the constraint
+    tests term-mappings (valuations) phi, whether phi(t_1) = .. = phi(t_n)."""
+    def __new__(type,*args):
+        if not '_list' in type.__dict__:
+            type._list = {}
+        flatArgs = flattenEqTermArgs(args)
+        if flatArgs in type._list:
+            return type._list[flatArgs]
+        type._list[flatArgs] = object.__new__(type)
+            
+        return type._list[flatArgs]
+
+    def __init__(self,*equations):
+        """creates the equation frozensets from a list of tuples of terms,
+        that represent n-fold equations t_1 = t_2 = .. = t_n"""
+        eqs = flattenEqTermArgs(equations)
+        self._eqs = eqs
+
+    def __call__(self,phi):
+        """test whether for all equations, phi(t_1) = .. = phi(t_n)"""
+        for eq in self._eqs:
+            it = iter(eq)
+            y = phi(it.next())
+            try:
+                while True:
+                    if not (y == phi(it.next())):
+                        return False
+            except StopIteration:
+                return True
+
+    def and_domains(self):
+        return frozenset([EqualityTermConstraints])
+
+    def __and__(self,r):
+        return EqualityTermConstraints(*(self._eqs | r._eqs))
