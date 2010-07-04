@@ -97,6 +97,12 @@ class Ring(object):
         respects 0 and 1 is also a RingHom"""
         raise Exception('Ring does not have a testing set for homomorphisms')
 
+    def module_test(self):
+        """Returns a set of EquivalenceTermConstraints that is sufficient to
+        tell whether a morphism defined by the images of the unit as generating
+        set for the ring viewed as module that respects the 0."""
+        raise Exception('Ring does not have a testing set for module homomorphisms')
+
 testRingHom = CON.Eq(TA.C(0),TA.f(TA.C(0))) & CON.Eq(TA.C(1),TA.f(TA.C(1)))
 
 class RingHom(object):
@@ -239,6 +245,10 @@ class RingZn(Ring):
         return frozenset([CON.Eq(TA.f(TA.C(1)),TA.C(1),\
                                  TA.Z(self._n+1,TA.f(TA.C(1))))])
 
+    def module_test(self):
+        return frozenset([CON.Eq(TA.f(TA.C(1)),\
+                                 TA.Z(self._n+1,TA.f(TA.C(1))))])
+
 class RingZ(Ring):
     """Ring class for integers"""
     def __new__(type,*args):
@@ -274,6 +284,9 @@ class RingZ(Ring):
         return TA.ZConstant(e,1)
 
     def test(self):
+        return frozenset()
+
+    def module_test(self):
         return frozenset()
 
 def evaluateInRing(term,ring,varmap):
@@ -429,7 +442,7 @@ class RingAsModule(Module):
         return (self._ring(1),)
 
     def test(self):
-        return ()
+        return self._ring.module_test()
 
     
 class ModuleHom(object):
