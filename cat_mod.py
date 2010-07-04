@@ -1,19 +1,19 @@
 # coding: utf-8
 #
-# Copyright (C) 2010 C.D. Immanuel Albrecht
+#   Copyright (C) 2010   C.D. Immanuel Albrecht
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 
@@ -23,12 +23,12 @@ import term_alg as TA
 import constraints as CON
 
 #
-# ###### ## ## ## ##### ####
-# ## ## ## #### ## ## ##
-# ## ## ## ## ## ## ## ##
-# ###### ## ## #### ## #### ####
-# ## ## ## ## ### ## ## ##
-# ## # ## ## ## ##### #####
+#  ######    ##    ##    ##    #####     ####
+#  ##   ##   ##    ####  ##   ##        ##
+#  ##   ##   ##    ## ## ##   ##        ##
+#  ######    ##    ##  ####   ## ####    ####
+#  ##   ##   ##    ##   ###   ##   ##       ##
+#  ##    #   ##    ##    ##    #####    #####
 #
 
 class Ring(object):
@@ -42,21 +42,21 @@ class Ring(object):
 
     def __call__(self,name):
         """Returns a special element that is denoted by name, for instance,
-0 and 1 are mapped to the neutral elements accordingly"""
+        0 and 1 are mapped to the neutral elements accordingly"""
         if name == 0:
             return self.add()
         elif name == 1:
             return self.mul()
-        raise Exception('Named element not defined!')
+        raise Exception('Named element not defined!')        
 
     def add(self,*elements):
         """Adds the given elements and returns the result, if no element is
-given, returns the neutral element"""
+        given, returns the neutral element"""
         raise Exception('Ring addition not defined!')
 
     def mul(self,*elements):
         """Multiplies the given elements (in reading order), if no element is
-given, returns the neutral element"""
+        given, returns the neutral element"""
         raise Exception('Ring multiplication not defined!')
 
     def inv(self,e):
@@ -81,26 +81,26 @@ given, returns the neutral element"""
 
     def gen(self):
         """Returns a finite generating set (if exists), i.e. a set such that
-every ring element is representable as finite sum of generating elements"""
+        every ring element is representable as finite sum of generating elements"""
         raise Exception('Ring does not have a finite generator!')
 
     def getterm(self,item):
         """Returns a term in variables and constants that evaluates to a NullaryTerm
-bound to item, when every constant is bound via __call__ and every variable
-is bound as n-th tuple-part of gen(), '+' is bound to add(..) and '*' is
-bound to mul(..) and '.' is bound to Zlmul(..)"""
+        bound to item, when every constant is bound via __call__ and every variable
+        is bound as n-th tuple-part of gen(), '+' is bound to add(..) and '*' is
+        bound to mul(..) and '.' is bound to Zlmul(..)"""
         raise Exception('Ring does not give terms in generators for elements!')
 
     def test(self):
         """Returns a set of EquivalenceTermConstraints that is sufficient to
-tell whether a morphism defined by the images of gen() that
-respects 0 and 1 is also a RingHom"""
+        tell whether a morphism defined by the images of gen() that
+        respects 0 and 1 is also a RingHom"""
         raise Exception('Ring does not have a testing set for homomorphisms')
 
     def module_test(self):
         """Returns a set of EquivalenceTermConstraints that is sufficient to
-tell whether a morphism defined by the images of the unit as generating
-set for the ring viewed as module that respects the 0."""
+        tell whether a morphism defined by the images of the unit as generating
+        set for the ring viewed as module that respects the 0."""
         raise Exception('Ring does not have a testing set for module homomorphisms')
 
 testRingHom = CON.Eq(TA.C(0),TA.f(TA.C(0))) & CON.Eq(TA.C(1),TA.f(TA.C(1)))
@@ -162,7 +162,7 @@ class IdRingHom(RingHom):
         return self.ring
 
 class ComposedRingHom(RingHom):
-    """Composed RingHom for a sequence of given RingHom-s"""
+    """Composed RingHom for a sequence of given RingHom-s"""        
     def __new__(type, *args):
         if not '_list' in type.__dict__:
             type._list = {}
@@ -211,7 +211,7 @@ class RingZn(Ring):
             type._list = {}
         if args in type._list:
             return type._list[args]
-        type._list[args] = object.__new__(type)
+        type._list[args] = object.__new__(type)        
         return type._list[args]
     
     def __init__(self,n):
@@ -275,7 +275,7 @@ class RingZ(Ring):
         return -e
 
     def Zlmul(self,z,e):
-        return self.mul(z,e)
+        return self.mul(z,e)    
 
     def gen(self):
         return (1,)
@@ -291,7 +291,7 @@ class RingZ(Ring):
 
 def evaluateInRing(term,ring,varmap):
     """Evaluates a term in a ring as far as possible, where varmap is a
-dictionary that will be used to map variables to ring objects"""
+    dictionary that will be used to map variables to ring objects"""
     t = term
     for v in term.variables():
         t = t.bindvariable(v,varmap[v])
@@ -301,12 +301,12 @@ dictionary that will be used to map variables to ring objects"""
            .bindfunction('.',ring.Zlmul).evaluate()
 
 #
-# ## ## #### ##### ## ## ## ###### #####
-# ### ### ## ## ## ## ## ## ## ## ##
-# ## # ## ## ## ## ## ## ## ## ## ##
-# ## ## ## ## ## ## ## ## ## #### #####
-# ## ## ## ## ## ## ## ## ## ## ##
-# ## ## #### ##### ##### ###### ###### #####
+#  ##   ##    ####    #####     ##   ##   ##       ######    #####
+#  ### ###   ##  ##   ##   ##   ##   ##   ##       ##       ##
+#  ## # ##   ##  ##   ##   ##   ##   ##   ##       ##       ##
+#  ##   ##   ##  ##   ##   ##   ##   ##   ##       ####      #####
+#  ##   ##   ##  ##   ##  ##    ##   ##   ##       ##            ##
+#  ##   ##    ####    #####      #####    ######   ######   #####
 #
 
 
@@ -322,14 +322,14 @@ class Module(object):
 
     def __call__(self,name):
         """Returns a special element that is denoted by name, for instance,
-0 to the neutral element of the module"""
+        0 to the neutral element of the module"""
         if name == 0:
             return self.add()
         raise Exception('Named element not defined!')
 
     def add(self,*elements):
         """Adds the given elements and returns the result, if no element is
-given, returns the neutral element"""
+        given, returns the neutral element"""
         raise Exception('Module addition not defined!')
 
     def inv(self,e):
@@ -366,7 +366,7 @@ given, returns the neutral element"""
 
     def test(self):
         """Returns a set of EquivalenceTests that is sufficient to tell whether a morphism
-defined by the images of gen() that respects 0 is also a ModuleHom"""
+        defined by the images of gen() that respects 0 is also a ModuleHom"""
         raise Exception('Module does not have a testing set for homomorphisms')
 
 class Module0(Module):
@@ -509,7 +509,7 @@ class IdModuleHom(ModuleHom):
         return IdRingHom(self.module.ring())
 
 class ComposedModuleHom(ModuleHom):
-    """Composed ModuleHom for a sequence of given ModuleHom-s"""
+    """Composed ModuleHom for a sequence of given ModuleHom-s"""        
     def __new__(type, *args):
         if not '_list' in type.__dict__:
             type._list = {}
@@ -584,7 +584,7 @@ class DiaffineMap(object):
 
     def cod(self):
         """returns the codomain of the diaffine map"""
-        return self.hom.cod()
+        return self.hom.cod()    
 
     def f(self):
         """returns the linear part of the diaffine morphism"""
