@@ -319,9 +319,29 @@ class Module(object):
         given, returns the neutral element"""
         raise Exception('Module addition not defined!')
 
+    def inv(self,e):
+        """Returns the additive inverse of the element e"""
+        raise Exception('Module additive-inversion not defined!')
+
     def lmul(self,scalar,item):
         """Evaluates the left ring-action R×M -> M of the module"""
         raise Exception('Left-R action is not defined!')
+
+    def Zlmul(self,z,e):
+        """Returns (e+e+...+e), the z-fold sum of e"""
+        if not type(z) in [int,long]:
+            raise Exception('Invalid left-Z-multiplication with non-integer on the left!')
+        if z == 0:
+            return self.add()
+        elif z > 1:
+            return self.add(*[e for x in range(z)])
+        elif z < -1:
+            i = self.inv(e)
+            return self.add(*[i for x in range(-z)])
+        elif z == 1:
+            return e
+        elif z == -1:
+            return self.inv(e)
 
     def ring(self):
         """Returns the Ring R for which the object is an left-R module"""
@@ -353,6 +373,12 @@ class Module0(Module):
         return 0
 
     def lmul(self,scalar,item):
+        return 0
+
+    def inv(self,item):
+        return 0
+
+    def Zlmul(self,z,item):
         return 0
 
     def ring(self):
@@ -390,6 +416,12 @@ class RingAsModule(Module):
     def lmul(self,scalar,item):
         return self._ring.mul(scalar,item)
 
+    def inv(self,item):
+        return self._ring.inv(item)
+
+    def Zlmul(self,z,item):
+        return self._ring.Zlmul(z,item)
+
     def ring(self):
         return self._ring
 
@@ -398,6 +430,7 @@ class RingAsModule(Module):
 
     def test(self):
         return ()
+
     
 class ModuleHom(object):
     """Base class for module homomorphisms"""
