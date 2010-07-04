@@ -97,6 +97,12 @@ class Ring(object):
         respects 0 and 1 is also a RingHom"""
         raise Exception('Ring does not have a testing set for homomorphisms')
 
+    def module_test(self):
+        """Returns a set of EquivalenceTermConstraints that is sufficient to
+        tell whether a morphism defined by the images of the unit as generating
+        set for the ring viewed as module that respects the 0."""
+        raise Exception('Ring does not have a testing set for module homomorphisms')
+
 testRingHom = CON.Eq(TA.C(0),TA.f(TA.C(0))) & CON.Eq(TA.C(1),TA.f(TA.C(1)))
 
 class RingHom(object):
@@ -239,6 +245,10 @@ class RingZn(Ring):
         return frozenset([CON.Eq(TA.f(TA.C(1)),TA.C(1),\
                                  TA.Z(self._n+1,TA.f(TA.C(1))))])
 
+    def module_test(self):
+        return frozenset([CON.Eq(TA.f(TA.C(1)),\
+                                 TA.Z(self._n+1,TA.f(TA.C(1))))])
+
 class RingZ(Ring):
     """Ring class for integers"""
     def __new__(type,*args):
@@ -274,6 +284,9 @@ class RingZ(Ring):
         return TA.ZConstant(e,1)
 
     def test(self):
+        return frozenset()
+
+    def module_test(self):
         return frozenset()
 
 def evaluateInRing(term,ring,varmap):
@@ -319,9 +332,29 @@ class Module(object):
         given, returns the neutral element"""
         raise Exception('Module addition not defined!')
 
+    def inv(self,e):
+        """Returns the additive inverse of the element e"""
+        raise Exception('Module additive-inversion not defined!')
+
     def lmul(self,scalar,item):
         """Evaluates the left ring-action R×M -> M of the module"""
         raise Exception('Left-R action is not defined!')
+
+    def Zlmul(self,z,e):
+        """Returns (e+e+...+e), the z-fold sum of e"""
+        if not type(z) in [int,long]:
+            raise Exception('Invalid left-Z-multiplication with non-integer on the left!')
+        if z == 0:
+            return self.add()
+        elif z > 1:
+            return self.add(*[e for x in range(z)])
+        elif z < -1:
+            i = self.inv(e)
+            return self.add(*[i for x in range(-z)])
+        elif z == 1:
+            return e
+        elif z == -1:
+            return self.inv(e)
 
     def ring(self):
         """Returns the Ring R for which the object is an left-R module"""
@@ -353,6 +386,12 @@ class Module0(Module):
         return 0
 
     def lmul(self,scalar,item):
+        return 0
+
+    def inv(self,item):
+        return 0
+
+    def Zlmul(self,z,item):
         return 0
 
     def ring(self):
@@ -389,6 +428,12 @@ class RingAsModule(Module):
 
     def lmul(self,scalar,item):
         return self._ring.mul(scalar,item)
+
+    def inv(self,item):
+        return self._ring.inv(item)
+
+    def Zlmul(self,z,item):
+        return self._ring.Zlmul(z,item)
 
     def ring(self):
         return self._ring
@@ -443,8 +488,8 @@ class NdimRingModule(Module):
         return tuple([tuple([zero]*i+[unit]+[zero]*(self._dim-i-1))\
                           for i in range(self._dim)])
 
-    def test(self): #TODO!
-        return ()
+    def test(self): 
+        return self._ring.module_test()
 
     
 class ModuleHom(object):
