@@ -19,11 +19,15 @@
 
 from __future__ import print_function
 
+# general helpers
+
 def is_all(v,array):
     return all(map(lambda x: x==v, array))
 
 def zip_with(fn, *arrays):
     return map(lambda x:fn(*x), zip(*arrays))
+
+# local rhythms
 
 class Rhythmlet(object):
     i_priorities = {"left_hand":['sn14wrock(ord,stxl)',\
@@ -187,10 +191,168 @@ class Rhythmlet(object):
                 x = min(self.at_h(join.times[i],k),r.at_h(join.times[i],k))
                 join.__dict__[k][i] = self.i_priorities[k][x]
         return join
+
+# local chords
         
+def namepitch(pitch,sharp=1):
+    """ name a pitch """
+    names = {0:('c','c'), 1:('cis','des'), 2:('d','d'), 3:('dis','es'),\
+             4:('e','e'), 5:('f','f'), 6:('fis','ges'), 7:('g','g'),\
+             8:('gis','as'), 9:('a','a'), 10:('ais','bes'), 11:('b','b')}
+    octave = pitch / 12
+    if octave < -1:
+        octave = ','*(-octave-1)
+    elif octave > -1:
+        octave = "'"*(octave+1)
+    else:
+        octave = ""
+    if sharp:
+        vpitch = names[pitch%12][0]
+    else:
+        vpitch = names[pitch%12][1]
+    return vpitch+octave
+
+def collapseempty(l):
+    out = []
+    last = l[0]
+    if last == "":
+        last = 1
+    for x in l[1:]:
+        if x == "":
+            if type(last) == int :
+                last += 1
+                continue
+            else:
+                x = 1
+        out.append(last)
+        last = x
+    out.append(last)
+    return out            
+
+def splitspace(s):
+    if s and s[0] == " ":
+        return collapseempty(s[1:].split(" "))
+    else:
+        return collapseempty(s.split(" "))
+
+def processtabline(s,tuning):
+    spacemap = {0:1,1:1,2:2,3:2,4:3,5:3,6:4,7:4,8:4,9:4,10:5,11:5,12:5,\
+            13:6,14:6,15:6} # interpret indentation space count
+    l = collapseempty(splitspace(s))
+    chord = [None] * len(tuning)
+    frets = [None] * len(tuning)
+    style = ""
+    index = 0
+    if l and (type(l[0])==int): #initial spacing is different
+        index = spacemap[l[0]] - 1
+        l = l[1:]
+    for x in l:
+        if type(x) == int: #spacing
+            try:
+                index += spacemap[x]
+            except KeyError:
+                index += len(tuning)
+        else: #fret-string
+            while x: #process first string part
+                c = x[0]
+                x = x[1:]
+                if c.isdigit(): #process fret-nbr
+                    f = int(c)
+                    if x and (x[0].isdigit()): #stick up to 24th fret
+                        f2 = int(x[0])
+                        if 10*f + f2 <= 24:
+                            f = 10*f + f2
+                            x = x[1:]
+                    if index < len(tuning):
+                        frets[index] = f
+                        chord[index] = f + tuning[index]
+                    index += spacemap[0]
+                else: #process modifier and mute strings
+                    if c in '.ls': #p.m., legato, squeal
+                        style = c
+                    index += spacemap[0]                                                
+    return chord, frets, style
+
+def makefretting(sortedchord, tuning): #TODO, dummy placeholder
+    frets = [None] * len(tuning)
+    index = 0
+    for x in sortedchord:
+        if index < len(tuning):
+            while index < len(tuning) and (x-tuning[index]) > 24:
+                index += 1
+            frets[index] = x - tuning[index]
+        index += 1
+    return frets
 
 class Chordlet(object):
     g_tuning = [2,-3,-7,-12,-17,-22,-29]
+    g_tuning.reverse()
+    s_priority = ['.','l',"",'s']
+
     def __init__(self,chordstring):
         self.chordstring = chordstring
-        pass
+        chordarray, self.frets, self.style = processtabline(chordstring, self.g_tuning)
+        self.chord = [x for x in chordarray if not x == None]
+        self.chord.sort()
+
+    def cmp(self,r):
+        l_less = self.s_priority.index(self.style) <= self.s_priority.index(r.style)
+        r_less = self.s_priority.index(self.style) >= self.s_priority.index(r.style)
+        if len(self.chord) <= len(r.chord):
+            d = len(r.chord) - len(self.chord)
+            if any(zip_with(lambda x,y:x>y, self.chord, r.chord[d:])):
+                l_less = False
+        else:
+            l_less = False
+        if len(self.chord) >= len(r.chord):
+            d = len(self.chord) - len(r.chord)
+            if any(zip_with(lambda x,y:x>y, r.chord, self.chord[d:])):
+                r_less = False
+        else:
+            r_less = False
+        if l_less and r_less:
+            return "="
+        elif l_less:
+            return "<"
+        elif r_less:
+            return ">"
+        else:
+            return "|"
+
+    def __ge__(self,r):
+        return self.cmp(r) in [">","="]
+
+    def __gt__(self,r):
+        return self.cmp(r) == ">"
+
+    def __le__(self,r):
+        return self.cmp(r) in ["<","="]
+
+    def __lt__(self,r):
+        return self.cmp(r) == "<"
+
+    def __eq__(self,r):
+        return self.cmp(r) == "="
+
+    def __and__(self,r):
+        style = self.s_priority[ min(self.s_priority.index(self.style),\
+                                     self.s_priority.index(r.style)) ]
+        c_len = min(len(self.chord), len(r.chord))
+        chord = [min(self.chord[-i-1],r.chord[-i-1]) for i in range(c_len)]
+        chord.sort()
+        meet = Chordlet(style)
+        meet.chord = chord
+        meet.frets = makefretting(chord,self.g_tuning)
+        return meet
+
+    def __or__(self,r):
+        style = self.s_priority[ max(self.s_priority.index(self.style),\
+                                     self.s_priority.index(r.style)) ]
+        c_len = min(len(self.chord), len(r.chord))
+        chord = [max(self.chord[-i-1],r.chord[-i-1]) for i in range(c_len)] + \
+                self.chord[:-c_len] + r.chord[:-c_len]
+        chord.sort()
+        join = Chordlet(style)
+        join.chord = chord
+        join.frets = makefretting(chord,self.g_tuning)
+        return join
