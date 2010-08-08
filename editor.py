@@ -32,6 +32,37 @@ class SandboxInteraction(object):
         self.window.grid_rowconfigure(0,weight=1)        
         self.code_window = ScrolledText(self.window)
         self.code_window.grid(row=0,column=0,sticky=N+E+S+W)
+        def return_callback(event):
+            current_line = event.widget.get("insert linestart","insert")
+            starting_ws = ""
+            in_head = True
+            for i in range(len(current_line)):
+                if not current_line[i].isspace():
+                    in_head = False
+                    break
+                starting_ws += current_line[i]
+            ending_ws = ""                
+            if in_head:
+                current_line = event.widget.get("insert","insert lineend")
+                for i in range(len(current_line)):
+                    if not current_line[i].isspace():
+                        break
+                    ending_ws += current_line[i]                
+            event.widget.insert(INSERT,ending_ws+"\n"+starting_ws)
+            return "break"
+        def tab_callback(event):
+            event.widget.insert(INSERT,"    ")
+            return "break"
+        def backspace_callback(event):
+            big_before = event.widget.get("insert-4c","insert")
+            if big_before == "    ":
+                event.widget.delete("insert-4c","insert")
+            else:
+                event.widget.delete("insert-1c","insert")
+            return "break"
+        self.code_window.subwidget("text").bind("<Return>",return_callback)
+        self.code_window.subwidget("text").bind("<Tab>",tab_callback)
+        self.code_window.subwidget("text").bind("<BackSpace>",backspace_callback)
 
     def mainloop(self):
         self.window.mainloop()
