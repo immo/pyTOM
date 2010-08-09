@@ -18,8 +18,7 @@
 
 from __future__ import print_function
 from Tix import *
-import code
-import sys
+import sys,code,re
 
 class dummySelf(object):
     def __init__(self,dict=None):
@@ -118,25 +117,40 @@ class SandboxInteraction(object):
         self.balloon.bind_widget(self.rerun_all, balloonmsg="Clean up sandbox and run "\
                                  "all the code buffer above afterwards (Ctrl+Q)")
         self.window.bind("<Control-q>",apply_all)        
-        self.interactive_output = ScrolledText(self.window,height=80)
+        self.interactive_output = ScrolledText(self.window,height=160)
         self.window.grid_rowconfigure(2,weight=0)
         self.interactive_output.grid(row=2,column=0,sticky=N+E+S+W)
         self.stdout = sys.stdout
-        self.stderr = sys.stderr       
+        self.stderr = sys.stderr
+        self.error_line = re.compile(">., line [0-9]*")
+        self.mark_error_offset = 0
         self.reset_interpreter()
 
     def do_entry(self):
+        start_linecol = int(self.code_window\
+                        .subwidget("text").index("end")\
+                        .split(".")[0])
+        self.mark_error_offset = start_linecol - 1  
         code = self.run_entry.get()
         self.run_entry.delete(0,END)
         self.code_window.subwidget("text").insert(END,"\n"+code+"\n")
+        self.code_window.subwidget("text").yview_moveto(1.0)
         self.runsource(code)
 
     def do_line(self):
+        start_linecol = int(self.code_window\
+                        .subwidget("text").index("insert")\
+                        .split(".")[0])
+        self.mark_error_offset = start_linecol - 1
         code = self.code_window.subwidget("text").get("insert linestart",\
                                                       "insert lineend").strip()
         self.runsource(code)
 
     def do_paragraph(self):
+        start_linecol = int(self.code_window\
+                        .subwidget("text").index("sel.first linestart")\
+                        .split(".")[0])
+        self.mark_error_offset = start_linecol - 1
         code = self.code_window.subwidget("text").get("sel.first linestart",\
                                                       "sel.last lineend")
         code = code.replace("\t"," "*8)
@@ -147,14 +161,19 @@ class SandboxInteraction(object):
             starting_ws += code[i]
         deindented_code = []
         for line in code.split("\n"):
+            add_empty_line = True
             for i in range(len(line)):
                 if i >= len(starting_ws) or (starting_ws[i] != line[i]):
                     deindented_code.append(line[i:])
                     starting_ws = starting_ws[:i]
+                    add_empty_line = False
                     break
+            if add_empty_line:
+                deindented_code.append("")
         self.runcode("\n".join(deindented_code))
 
     def do_code(self):
+        self.mark_error_offset = 0
         code = self.code_window.subwidget("text").get(1.0,END)
         code = code.replace("\t"," "*8)
         self.runcode(code)
@@ -163,6 +182,7 @@ class SandboxInteraction(object):
         self.interpreter = code.InteractiveInterpreter()
         self.interpreter.locals['__name__'] = '__main__'
         self.interpreter.locals['self'] = dummySelf()
+        self.interpreter.locals['sandself'] = self
         def write_local(s,parent=self):
             parent.write(s)
         self.interpreter.write = write_local
@@ -171,6 +191,16 @@ class SandboxInteraction(object):
 
     def write(self,s):
         self.interactive_output.subwidget("text").insert(END,s)
+        errline = self.error_line.search(s)
+        if errline:
+            start,end = errline.span()
+            line = str( int(s[start+9:end]) + self.mark_error_offset )
+            self.code_window.subwidget("text").mark_set("insert",line+".0")
+            self.code_window.subwidget("text").tag_add("sel",line+".0",\
+                                                       line+".end")
+            self.code_window.subwidget("text").focus_set()
+       
+                            
 
     def grab_output(self):
         sys.stdout = self
