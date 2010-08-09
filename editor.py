@@ -57,10 +57,10 @@ class RhythmletEditor(object):
                            colorigin=0,selectmode='browse',\
                            rowstretch='none',colstretch='all',\
                            variable=self.tvariable,drawmode='slow',\
-                           state='disabled')
+                           state='disabled',colwidth=20)
         self.table.pack(side=LEFT,expand=1,fill='both')
         self.scrollbar = Scrollbar(self.tcontainer)
-        self.scrollbar.pack(side=RIGHT,fill=Y,expand=1)
+        self.scrollbar.pack(side=RIGHT,fill=Y)
         self.scroll_callback = ScrollDummy(self.table)
         self.scrollbar.config(command=self.scroll_callback.yview)
         self.table.config(yscrollcommand=self.scrollbar.set)
@@ -68,10 +68,54 @@ class RhythmletEditor(object):
             row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
             row = int(row)
             col = int(col)
-            if (row >= 0):
-                if col == 1:
-                    parent.reference.left_hand
+            if (row >= 0) and (col > 0):
+                key = {1:'left_hand',2:'feet',3:'right_hand'}[col]
+                current = self.reference.at_h(self.reference.times[row],key)
+                if current > 0:
+                    current -= 1
+                self.reference.__dict__[key][row] = \
+                                    self.reference.i_priorities[key][current]
+                self.reference.____changed(key)
+        def db_left_button(event,parent=self):
+            row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
+            row = int(row)
+            col = int(col)
+            if (row >= 0) and (col > 0):
+                key = {1:'left_hand',2:'feet',3:'right_hand'}[col]
+                current = 0
+                self.reference.__dict__[key][row] = \
+                                    self.reference.i_priorities[key][current]
+                self.reference.____changed(key)                
+        def right_button(event,parent=self):
+            row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
+            row = int(row)
+            col = int(col)
+            if (row >= 0) and (col > 0):
+                key = {1:'left_hand',2:'feet',3:'right_hand'}[col]
+                current = self.reference.at_h(self.reference.times[row],key)
+                if current < len(self.reference.i_priorities[key])-1:
+                    current += 1
+                self.reference.__dict__[key][row] = \
+                                    self.reference.i_priorities[key][current]
+                self.reference.____changed(key)
+        def db_right_button(event,parent=self):
+            row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
+            row = int(row)
+            col = int(col)
+            if (row >= 0) and (col > 0):
+                key = {1:'left_hand',2:'feet',3:'right_hand'}[col]
+                current = len(self.reference.i_priorities[key])-1
+                self.reference.__dict__[key][row] = \
+                                    self.reference.i_priorities[key][current]
+                self.reference.____changed(key)
+                
         self.table.bind("<Button-1>",left_button)
+        self.table.bind("<Double-Button-1>",db_left_button)        
+        self.table.bind("<Button-4>",left_button)        
+        self.table.bind("<Button-3>",right_button)
+        self.table.bind("<Double-Button-3>",db_right_button)        
+        self.table.bind("<Button-5>",right_button)        
+        
 
     def fill_tvariable(self):
         def str2(x):
