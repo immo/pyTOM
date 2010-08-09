@@ -46,6 +46,8 @@ class ReferenceObject(object):
             return super(ReferenceObject, self).__getattribute__('watch')
         elif str(a).endswith('____unwatch'):
             return super(ReferenceObject, self).__getattribute__('unwatch')
+        elif str(a).endswith('____changed'):
+            return super(ReferenceObject, self).__getattribute__('changed')
         return super(ReferenceObject, self).__getattribute__('_o')\
                .__getattribute__(a)
     
@@ -54,6 +56,16 @@ class ReferenceObject(object):
         super(ReferenceObject, self).__getattribute__('update')(a,x)
         
     def update(self,attribute,newvalue):
+        watchers = super(ReferenceObject, self).__getattribute__('_watchers')
+        for w in watchers:
+            if type(w) == type(lambda x:0):
+                w(attribute,newvalue)
+            else:
+                w.update(attribute,newvalue)
+
+    def changed(self,attribute):
+        newvalue = super(ReferenceObject, self).__getattribute__('_o')\
+               .__getattribute__(attribute)
         watchers = super(ReferenceObject, self).__getattribute__('_watchers')
         for w in watchers:
             if type(w) == type(lambda x:0):

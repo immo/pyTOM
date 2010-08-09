@@ -134,6 +134,16 @@ class Rhythmlet(object):
         except:
             return self.i_priorities[k].index(None)
 
+    def sort(self):
+        sorted_time = list(self.times)
+        sorted_time.sort()
+        for k in self.i_priorities:
+            sorted = [self.at(sorted_time[i],k) \
+                      for i in range(len(sorted_time))]
+            self.__dict__[k] = sorted
+        self.times = sorted_time
+
+
     def cmp(self,r):
         lt = self.actual_hit_times()
         rt = r.actual_hit_times()
