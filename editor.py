@@ -19,6 +19,28 @@
 
 from __future__ import print_function
 from sandbox import *
+from lattices import *
+from references import *
+from Tix import *
+
+
+
+class RhythmletEditor(object):
+    def __init__(self, reference, pwindow=None):
+        """ Create an RhythmletEditor associated with the reference object """
+        self.reference = reference
+        reference.____watch(self)
+        self.window = Toplevel(pwindow)
+        self.window.title('Rhythmlet Editor')
+        self.window.bind('WM_DELETE_WINDOW', lambda : self.destroy())
+        print("OK")
+
+    def update(self,key,value):
+        print("Update",key,"<-",value)
+
+    def destroy(self):
+        self.reference.____unwatch(self)
+        self.__delattr__('reference')
 
 if __name__ == "__main__":
     print("*let Editor")

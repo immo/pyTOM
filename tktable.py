@@ -601,7 +601,7 @@ class Table(Tkinter.Widget):
 
 # Sample test taken from tktable cvs, original tktable python wrapper
 def sample_test():
-    from Tkinter import Tk, Label, Button
+    from Tix import Tk, Label, Button
 
     def test_cmd(event):
         if event.i == 0:
