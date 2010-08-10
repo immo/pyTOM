@@ -150,6 +150,23 @@ class Rhythmlet(object):
         for k in self.i_priorities:
             self.__dict__[k] = list(self.__dict__[k]) + new_none
 
+    def del_times(self,*times):
+        new_times = [t for t in self.times if not t in times]
+        for k in self.i_priorities:
+            updated = [self.at(new_times[i],k) \
+                      for i in range(len(new_times))]
+            self.__dict__[k] = updated
+        self.times = new_times
+
+    def compactify_times(self):
+        new_times = [t for t in self.times \
+                     if any([self.at(t,k) for k in self.i_priorities])]
+        for k in self.i_priorities:
+            updated = [self.at(new_times[i],k) \
+                      for i in range(len(new_times))]
+            self.__dict__[k] = updated
+        self.times = new_times
+        
 
     def cmp(self,r):
         lt = self.actual_hit_times()

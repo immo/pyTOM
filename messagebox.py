@@ -50,7 +50,7 @@ def messagebox(*lines):
         w.destroy()
 
     btn = Button(window,text="Okay",command=okay_action)
-    btn.grid(row=row,column=0,sticky=E+W)
+    btn.grid(row=row,column=0,sticky=E+W+S)
 
     window.grid_columnconfigure(0,weight=1)
     window.grid_rowconfigure(row,weight=1)
@@ -58,13 +58,29 @@ def messagebox(*lines):
     window.bind("<Return>",okay_action)
     window.bind("<Escape>",okay_action)
 
-    window.title(caption)
+    w = window.winfo_width()
+    h = window.winfo_height()
+    if w < 120:
+        w = 120
+    if h < 80:
+        h = 80
+    window.wm_geometry("%ix%i"%(w,h))
 
-    window.tkraise()
-    window.grab_set()
+    window.title(caption)
+    screencenter(window)
+    modalwait(window)
+
+
+def screencenter(window):
+    window.update()
     x = window.winfo_screenwidth()/2 - window.winfo_width()/2
     y = window.winfo_screenheight()/2 - window.winfo_height()/2
     window.wm_geometry("+%i+%i"%(x,y))
+
+def modalwait(window,parent=None):
+    window.update()
+    window.tkraise()
+    window.grab_set()
     if parent:
         parent.wait_window(window)
     else:
