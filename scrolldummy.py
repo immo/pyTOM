@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 #
 #   Copyright (C) 2010   C.D. Immanuel Albrecht
@@ -18,19 +17,16 @@
 #
 
 from __future__ import print_function
-from sandbox import *
-from lattices import *
-from references import *
 from Tix import *
 from tktable import *
-from fractions import *
-from repgrep import *
-from messagebox import *
-from rhythmlet_editor import *
-import math
 
 
-if __name__ == "__main__":
-    print("*let Editor")
-    root = SandboxInteraction()
-    root.mainloop()
+class ScrollDummy(object):
+    def __init__(self,table):
+        self.table = table
+
+    def yview(self,*args):
+        if args[0] == 'scroll':
+            self.table.yview_scroll(*args[1:])
+        if args[0] == 'moveto':
+            self.table.yview_moveto(*args[1:])

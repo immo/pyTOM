@@ -7,10 +7,11 @@ from references import *
 from Tix import *
 from messagebox import *
 from repgrep import *
+from rhythmlet_editor import *
 
 rhythm = ReferenceObject(Rhythmlet(1,2,3))
-editor = reload(editor)
-x = editor.RhythmletEditor(rhythm)
+rhythmlet_editor = reload(rhythmlet_editor)
+x = rhythmlet_editor.RhythmletEditor(rhythm)
 
 x.add_time_grid_dialog()
 
@@ -20,7 +21,7 @@ x.add_time_grid_dialog()
 
 ###
 
-import editor
+import rhythmlet_editor as editor
 from lattices import *
 from references import *
 from Tix import *
@@ -33,3 +34,16 @@ editor = reload(editor)
 x = editor.RhythmletEditor(rhythm)
 
 x.add_time_grid_dialog()
+###
+
+import rhythmlet_editor as editor
+from lattices import *
+from references import *
+from Tix import *
+from messagebox import *
+from repgrep import *
+from fractions import Fraction
+
+rhythm = ReferenceObject(Rhythmlet(Fraction(1),Fraction(2),Fraction(3)))
+editor = reload(editor)
+x = editor.RhythmletEditor(rhythm)
