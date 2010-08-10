@@ -1,5 +1,11 @@
-# this file contains tool code for rapid testing
 
+# this file contains tool code for rapid testing
+import rhythm_editor
+
+rhythm_editor = reload(rhythm_editor)
+x = rhythm_editor.RhythmEditor()
+
+###
 
 import editor
 from lattices import *
