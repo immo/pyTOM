@@ -146,11 +146,32 @@ class RhythmletEditor(object):
         self.table.bind("<Control-Button-3>",copy_row_selector)
         self.table.bind("<Control-Double-Button-3>",copy_row_selector)        
         self.table.bind("<Control-Button-1>",copy_row_action)
-        self.table.bind("<Control-Double-Button-1>",copy_all_action)        
+        self.table.bind("<Control-Double-Button-1>",copy_all_action)
+        self.table.bind("<Control-space>",copy_all_action)
+        self.table.bind("<space>",copy_row_action)                        
         self.table.bind("<Button-4>",left_button)        
         self.table.bind("<Button-3>",right_button)
         self.table.bind("<Double-Button-3>",db_right_button)        
         self.table.bind("<Button-5>",right_button)
+
+        priority_list = "1234567890poiuztrewqasdfghjklmnbvcx"
+        for key,nbr in zip(priority_list,range(len(priority_list)))\
+                       + [("y",priority_list.index("z"))]:
+            def set_instrument_by_key(event,parent=self,n=nbr):
+                row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
+                row = int(row)
+                col = int(col)
+                if (row >= 0) and (col > 0):
+                    key = {1:'left_hand',2:'feet',3:'right_hand'}[col]
+                    if n < len(parent.reference.i_priorities[key]):
+                        choosen = parent.reference.i_priorities[key][n]
+                    else:
+                        choosen = None
+                    parent.reference.__dict__[key][row] = choosen
+                    parent.reference.____changed(key)
+            self.table.bind(key,set_instrument_by_key)
+        
+        
         self.balloon = Balloon(self.window)        
         self.buttons = Frame(self.window)
         self.buttons.grid(row=1,column=0,sticky=E)
@@ -206,6 +227,7 @@ class RhythmletEditor(object):
         self.balloon.bind_widget(self.clr_btn,\
                                     balloonmsg="Delete all rows that have no hits.")
         self.window.bind("<Delete>",del_command)
+        self.table.focus_set()
         screencenter(self.window)
 
     def add_fraction_time_grid(self,d):
