@@ -120,7 +120,7 @@ class Rhythmlet(object):
         return [self.i_priorities[k].index(self.__dict__[k][i])\
                 for k in self.i_priorities]
 
-    def at(self,t,key):
+    def at(self,t,k):
         try:
             i = self.times.index(t)
             return self.__dict__[k][i]
@@ -142,6 +142,13 @@ class Rhythmlet(object):
                       for i in range(len(sorted_time))]
             self.__dict__[k] = sorted
         self.times = sorted_time
+
+    def add_to_time_grid(self,*times):
+        new_times = [t for t in times if not t in self.times]
+        new_none = [None]*len(new_times)
+        self.times = list(self.times) + new_times
+        for k in self.i_priorities:
+            self.__dict__[k] = list(self.__dict__[k]) + new_none
 
 
     def cmp(self,r):
