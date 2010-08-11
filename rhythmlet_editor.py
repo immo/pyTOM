@@ -28,13 +28,16 @@ import math
 
 
 class RhythmletEditor(object):
-    def __init__(self, reference, pwindow=None):
+    def __init__(self, reference, pwindow=None, let_name=None):
         """ Create an RhythmletEditor associated with the reference object """
         reference.sort()
         self.reference = reference
         reference.____watch(self)
         self.window = Toplevel(pwindow)
-        self.window.title('Rhythmlet Editor')
+        if not let_name:
+            self.window.title('Rhythmlet Editor')
+        else:
+            self.window.title(let_name + " - Rhythmlet Editor")
         self.window.protocol('WM_DELETE_WINDOW', lambda : self.destroy())
         self.window.grid_columnconfigure(0,weight=1)
         self.window.grid_rowconfigure(0,weight=1)

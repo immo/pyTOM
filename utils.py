@@ -29,4 +29,7 @@ def count_recurrences(iterable, value):
             count = 0
     if count > 0:
         recurrences.append(count)
-    return recurrences
+    if recurrences:
+        return recurrences
+    else:
+        return [0]

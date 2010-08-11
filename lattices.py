@@ -211,7 +211,6 @@ class Rhythmlet(object):
 
     def __and__(self,r):
         meet = Rhythmlet(*(set(self.times) & set(r.times)))
-        print(meet.times)
         for i in range(len(meet.times)):
             for k in self.i_priorities:
                 x = max(self.at_h(meet.times[i],k),r.at_h(meet.times[i],k))

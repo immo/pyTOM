@@ -64,6 +64,34 @@ class RhythmEditor(object):
             s.second_op = row
             s.hilight_second_op()
 
+        def calculate_meet(event,s=self):
+            row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
+            row = int(row)            
+            if (0 <= s.second_op < len(s.rhythmletstack)) \
+               and (0 <= row < len(s.rhythmletstack)):
+                left = s.rhythmletstack[s.second_op]
+                right = s.rhythmletstack[row]
+                new_name = left[0]+" "*(max(utils.count_recurrences(left[0]," "))+1)\
+                           + "&" + " "*(max(utils.count_recurrences(right[0]," "))+1)\
+                           + right[0]
+                idx = s.add_rhythmlet_var(new_name,left[1].____ref & right[1].____ref)
+                s.second_op = idx
+                s.hilight_second_op()
+
+        def calculate_join(event,s=self):
+            row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
+            row = int(row)            
+            if (0 <= s.second_op < len(s.rhythmletstack)) \
+               and (0 <= row < len(s.rhythmletstack)):
+                left = s.rhythmletstack[s.second_op]
+                right = s.rhythmletstack[row]
+                new_name = left[0]+" "*(max(utils.count_recurrences(left[0]," "))+1)\
+                           + "|" + " "*(max(utils.count_recurrences(right[0]," "))+1)\
+                           + right[0]
+                idx = s.add_rhythmlet_var(new_name,left[1].____ref | right[1].____ref)
+                s.second_op = idx
+                s.hilight_second_op()
+
         def new_rhythmlet(x=None,s=self):
             row = s.add_rhythmlet_var(s.get_next_name(),Rhythmlet())
             s.rename_rhythmlet_var(row)
@@ -97,19 +125,116 @@ class RhythmEditor(object):
             row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(',')
             row = int(row)
             if row >= 0:
-                RhythmletEditor(self.rhythmletstack[row][1],s.window)
+                RhythmletEditor(self.rhythmletstack[row][1],s.window,\
+                                self.rhythmletstack[row][0]+" #"+str(row))
+
+        def scroll_down(x=None,s=self):
+            s.table.yview_scroll(1,"unit")
+        def scroll_up(x=None,s=self):
+            s.table.yview_scroll(-1,"unit")
+
+        def pick_to_canvas(event,s=self):
+            row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
+            row = int(row)
+            s.display_canvas(row)
+            
+
+        self.window.bind("<Button-4>",scroll_up)
+        self.window.bind("<Button-5>",scroll_down)        
 
         self.table.bind("<Double-Button-1>",edit_rhythmlet)
-        self.table.bind("<Delete>",del_rhythmlet)        
-        self.table.bind("<Shift-Double-Button-1>",mouse_rename_rhythmlet)
-        self.table.bind("<Button-3>",choose_second_op)        
+        self.window.bind("<Delete>",del_rhythmlet)        
+        self.table.bind("<Shift-Button-3>",mouse_rename_rhythmlet)
+        self.table.bind("<Button-3>",choose_second_op)
+        self.table.bind("<Button-2>",pick_to_canvas)        
+        self.table.bind("<Control-Button-1>",calculate_meet)
+        self.table.bind("<Shift-Button-1>",calculate_join)                        
         self.fill_table()
 
         self.canvas = Canvas(self.window,width=300,height=300)
         self.canvas.grid(row=0,column=1,sticky=N+E+S+W)
+
+        self.canvas_ids = []
+        self.canvas_op = -1
+
+        self.c_buttons = Frame(self.window)
+        self.c_buttons.grid(row=1,column=1,sticky=W)
+
+        def clear_canvas(x=None,s=self):
+            s.canvas_ids = []
+            s.update_canvas()
+
+        def update_canvas(x=None,s=self):
+            s.update_canvas()
+
+        def to_canvas(x=None,s=self):
+            row,col = s.table.index("active").split(",")
+            row = int(row)
+            s.display_canvas(row)
+
+        def from_canvas(x=None,s=self):
+            s.remove_canvas(s.canvas_op)
+
+        quicktix.add_balloon_button(self.__dict__,"add_btn","c_buttons","← Add",\
+                                    to_canvas,\
+                                    "Add selected Rhythmlet to canvas.")
+        quicktix.add_balloon_button(self.__dict__,"rmv_btn","c_buttons","Remove ↑",\
+                                    from_canvas,\
+                                    "Removes the selected canvas object from canvas."\
+                                    " (Middle-Click)")
+        quicktix.add_balloon_button(self.__dict__,"clr_btn","c_buttons","Clear",\
+                                    clear_canvas,\
+                                    "Clear all objects from canvas.")
+        quicktix.add_balloon_button(self.__dict__,"upd_btn","c_buttons","Update",\
+                                    update_canvas,\
+                                    "Update shown relations on canvas.")
+
+        def reconfigure(x=None,s=self):
+            s.update_canvas()
+
+        self.window.bind("<Configure>",reconfigure)
         
         quicktix.min_win_size(self.window,600,400)
         quicktix.screencenter(self.window)
+
+    def display_canvas(self,index):
+        if not index in self.canvas_ids:
+            self.canvas_ids.append(index)
+        self.update_canvas()
+
+    def remove_canvas(self,index):
+        self.canvas_ids = [i for i in self.canvas_ids if not i == index]
+        self.update_canvas()
+
+    def update_canvas(self):
+        self.canvas_ids = filter(lambda x: 0 <= x < len(self.rhythmletstack),\
+                                 self.canvas_ids)
+        ideals = {}
+        from_top = {}
+        for i in self.canvas_ids:
+            ideals[i] = filter(lambda x: \
+                               self.rhythmletstack[x][1].____ref <\
+                               self.rhythmletstack[i][1].____ref,\
+                               self.canvas_ids)
+            from_top[i] = 0
+
+        refined = True
+        while refined:
+            refined = False
+            for i in ideals:
+                relative = from_top[i] + 1
+                for j in ideals[i]:
+                    if from_top[j] < relative:
+                        from_top[j] = relative
+                        refined = True
+        descendants = {}
+        for i in ideals:
+            relative = from_top[i] + 1
+            descendants[i] = filter(lambda x: from_top[x] == relative,\
+                                    ideals[i])
+        print(ideals)
+        print(from_top)
+        print(descendants)
 
     def get_next_name(self):
         x = self.next_name
