@@ -164,6 +164,7 @@ class SandboxInteraction(object):
         self.interpreter.locals['__name__'] = '__main__'
         self.interpreter.locals['self'] = dummySelf()
         self.interpreter.locals['sandself'] = self
+        self.interpreter.locals['dummySelf'] = dummySelf
         def write_local(s,parent=self):
             parent.write(s)
         self.interpreter.write = write_local

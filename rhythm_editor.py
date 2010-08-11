@@ -25,15 +25,17 @@ from fractions import *
 from messagebox import *
 from rhythmlet_editor import *
 from scrolldummy import *
+import quicktix
 
 class RhythmEditor(object):
     def __init__(self,parent=None):
         self.window = Toplevel(parent)
         self.rhythmletstack = []
         self.window.grid_columnconfigure(0,weight=1)
+        self.window.grid_columnconfigure(1,weight=1)        
         self.window.grid_rowconfigure(0,weight=1)        
         self.tcontainer = Frame(self.window)
-        self.tcontainer.grid(sticky=N+S+E+W)
+        self.tcontainer.grid(row=0,column=0,sticky=N+S+E+W)
         self.tvariable = ArrayVar(self.window)
         self.tvariable.set("-1,0","Rhythmlets")
         self.table = Table(self.tcontainer, rows=1,\
@@ -48,6 +50,22 @@ class RhythmEditor(object):
         self.scroll_callback = ScrollDummy(self.table)
         self.scrollbar.config(command=self.scroll_callback.yview)
         self.table.config(yscrollcommand=self.scrollbar.set)
+        self.balloon = Balloon(self.window)
+        self.r_buttons = Frame(self.window)
+        self.r_buttons.grid(row=1,column=0,sticky=W)
+        
+        def new_rhythmlet(*x):
+            pass
+
+        def del_rhythmlet(*x):
+            pass
+        
+        quicktix.add_balloon_button(self.__dict__,'new_btn','r_buttons','New',\
+                                    new_rhythmlet,'Create a new rhythmlet.')
+        quicktix.add_balloon_button(self.__dict__,'del_btn','r_buttons','Delete',\
+                                    del_rhythmlet,\
+                                    'Deletes the currently selected rhythmlet. (Del)')
+        
         
         def edit_rhythmlet(event,s=self):
             row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(',')
@@ -57,7 +75,9 @@ class RhythmEditor(object):
 
         self.table.bind("<Double-Button-1>",edit_rhythmlet)
         self.fill_table()
-        screencenter(self.window)
+        
+        quicktix.min_win_size(self.window,200,260)
+        quicktix.screencenter(self.window)
         
         
     def fill_table(self):
