@@ -20,26 +20,7 @@ from __future__ import print_function
 from Tix import *
 import sys,code,re
 
-class dummySelf(object):
-    def __init__(self,dict=None):
-        if dict:
-            self.__dict__ = dict.copy()
-    def __repr__(self):
-        if self.__dict__:
-            keys = self.__dict__.keys()
-            keys.sort()
-            reps = [repr(k) for k in keys]
-            maxlen = max([min(len(r),20) for r in reps])
-            contents = []
-            for k,r in zip(keys,reps):
-                if len(r) < maxlen:
-                    pad = " "*(maxlen-len(r))
-                else:
-                    pad = ""
-                contents.append(r+": "+pad+repr(self.__dict__[k]))
-            return "sandbox.dummySelf({" + (",\\\n"+" "*19).join(contents)+"})"
-        else:
-            return "sandbox.dummySelf()"
+from dummyself import *
 
 class SandboxInteraction(object):
     def __init__(self,root=None):
