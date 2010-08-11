@@ -59,9 +59,17 @@ class ReferenceObject(object):
         watchers = super(ReferenceObject, self).__getattribute__('_watchers')
         for w in watchers:
             if type(w) == type(lambda x:0):
-                w(attribute,newvalue)
+                try:
+                    w(attribute,newvalue)
+                except Exception,err:
+                    print("ReferenceObject.update(..): Error in watcher ",\
+                          w,":", err)
             else:
-                w.update(attribute,newvalue)
+                try:
+                    w.update(attribute,newvalue)
+                except:
+                    print("ReferenceObject.update(..): Error in watcher ",\
+                          w,":", err)
 
     def changed(self,attribute):
         newvalue = super(ReferenceObject, self).__getattribute__('_o')\

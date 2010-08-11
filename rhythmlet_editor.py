@@ -109,6 +109,12 @@ class RhythmletEditor(object):
             row = int(row)
             if (row >= 0):
                 parent.copy_row = row
+                parent.table.tag_delete("hilit")
+                parent.table.tag_configure("hilit",background="yellow")
+                parent.table.tag_cell("hilit","%i,3"%row)
+                parent.table.tag_cell("hilit","%i,0"%row)
+                parent.table.tag_cell("hilit","%i,1"%row)
+                parent.table.tag_cell("hilit","%i,2"%row)                
         def copy_row_action(event,parent=self):
             row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
             row = int(row)

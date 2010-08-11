@@ -20,6 +20,10 @@ from __future__ import print_function
 from Tix import *
 
 def messagebox(*lines):
+    """ ([parent_window], ... text-lines)
+    prints a message box with parent_window as parent and
+    text-lines as each line of text. If multiple lines are given,
+    the first line will be used as messagebox caption """
     try:
         if "tk" in lines[0].__dict__:
             parent = lines[0]
@@ -56,6 +60,7 @@ def messagebox(*lines):
     window.grid_rowconfigure(row,weight=1)
 
     window.bind("<Return>",okay_action)
+    window.bind("<KP_Enter>",okay_action)    
     window.bind("<Escape>",okay_action)
 
     w = window.winfo_width()
@@ -69,6 +74,104 @@ def messagebox(*lines):
     window.title(caption)
     screencenter(window)
     modalwait(window)
+
+def inputbox(*lines):
+    """ like messagebox, but lines ending with $ will be prompted for input,
+    'text =$defaultval$' will set defaultval to the entry"""
+    try:
+        if "tk" in lines[0].__dict__:
+            parent = lines[0]
+            lines = lines[1:]
+        else:
+            parent = None
+    except:
+        parent = None
+    if parent:
+        window = Toplevel(parent)
+    else:
+        window = Toplevel()
+    if len(lines) < 2:
+        caption = "Notice!"
+    else:
+        caption = str(lines[0])
+        lines = lines[1:]
+    if not lines:
+        lines = ["Nothing to say!"]
+
+    entries = []
+
+    first_entry = None
+        
+    row = 0
+    for l in lines:
+        l = str(l)
+        if l.endswith("$"):
+            l = l[:-1]
+            if '$' in l:
+                idx = l.rindex('$')
+                defval = l[idx+1:]
+                l = l[:idx]
+            else:
+                defval = ""
+            lbl = Label(window,text=l)
+            lbl.grid(row=row,column=0,sticky=E)
+            var = StringVar()
+            entry = Entry(window,textvariable=var)
+            entry.grid(row=row,column=1,sticky=E+W)
+            var.set(defval)
+            entries.append(var)
+            if not first_entry:
+                first_entry = entry
+            
+        else:
+            lbl = Label(window,text=l)
+            lbl.grid(row=row,column=0,columnspan=2,sticky=W)
+        row += 1
+
+    cancelled = {}
+        
+    def okay_action(x=None,w=window):
+        w.destroy()
+
+    def cancel_action(x=None,w=window,c=cancelled):
+        c["cancel"] = True
+        w.destroy()
+
+    btnbar = Frame(window)
+    btnbar.grid(row=row,column=0,columnspan=2,sticky=E+W+S)
+
+    btn = Button(btnbar,text="Okay",command=okay_action)
+    btn.pack(side=LEFT)
+
+    btn2 = Button(btnbar,text="Cancel",command=cancel_action)
+    btn2.pack(side=LEFT)
+
+    window.grid_columnconfigure(1,weight=1)
+    window.grid_rowconfigure(row,weight=1)
+
+    window.bind("<Return>",okay_action)
+    window.bind("<KP_Enter>",okay_action)    
+    window.bind("<Escape>",cancel_action)
+
+    w = window.winfo_width()
+    h = window.winfo_height()
+    if w < 300:
+        w = 300
+    if h < 100:
+        h = 100
+    window.wm_geometry("%ix%i"%(w,h))
+
+    if first_entry:
+        first_entry.focus_set()
+
+    window.title(caption)
+    screencenter(window)
+    modalwait(window)
+
+    if cancelled:
+        return None
+    else:
+        return [x.get() for x in entries]
 
 
 def screencenter(window):

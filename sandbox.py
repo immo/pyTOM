@@ -62,6 +62,7 @@ class SandboxInteraction(object):
                 event.widget.delete("insert-1c","insert")
             return "break"
         self.code_window.subwidget("text").bind("<Return>",return_callback)
+        self.code_window.subwidget("text").bind("<KP_Enter>",return_callback)
         self.code_window.subwidget("text").bind("<Tab>",tab_callback)
         self.code_window.subwidget("text").bind("<BackSpace>",backspace_callback)
         def apply_entry(event=None,parent=self):
@@ -78,6 +79,7 @@ class SandboxInteraction(object):
         self.run_entry = Entry(self.run_frame)
         self.run_entry.pack(side=LEFT,expand=1,fill=X)
         self.run_entry.bind("<Return>",apply_entry)
+        self.run_entry.bind("<KP_Enter>",apply_entry)        
         self.run_line = Button(self.run_frame,text="←",command=apply_entry)
         self.run_line.pack(side=LEFT)
         self.run_code_line = Button(self.run_frame,text="↑",command=apply_line)
