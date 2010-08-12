@@ -209,6 +209,11 @@ class RhythmEditor(object):
     def update_canvas(self):
         self.canvas_ids = filter(lambda x: 0 <= x < len(self.rhythmletstack),\
                                  self.canvas_ids)
+        
+        if not self.canvas_ids:
+            self.canvas.delete(ALL)
+            return
+        
         ideals = {}
         from_top = {}
         for i in self.canvas_ids:
@@ -232,9 +237,60 @@ class RhythmEditor(object):
             relative = from_top[i] + 1
             descendants[i] = filter(lambda x: from_top[x] == relative,\
                                     ideals[i])
-        print(ideals)
-        print(from_top)
-        print(descendants)
+        # dummy coordination
+        line_width = {}
+        line_order = {}
+        for i in from_top:
+            l = from_top[i]
+            if l in line_width:
+                line_width[l] += 1
+                line_order[l].append(i)
+            else:
+                line_width[l] = 1
+                line_order[l] = [i]
+
+        x_vals = []
+        y_vals = []
+        coords = {}
+        for l in line_order:
+            w = line_width[l]
+            count = 0
+            for i in line_order[l]:
+                coords[i] = (10*count - 5*(w-1),10*l)
+                x_vals.append(coords[i][0])
+                y_vals.append(coords[i][1])
+                count += 1
+
+        canvas_w = self.canvas.winfo_width()
+        canvas_h = self.canvas.winfo_height()
+        low_x = min(x_vals)
+        low_y = min(y_vals)
+        paint_width = float(max(x_vals)-low_x)
+        paint_height = float(max(y_vals)-low_y)
+        if paint_width == 0.0:
+            paint_width = 1.0
+        if paint_height == 0.0:
+            paint_height = 1.0
+        for i in coords:
+            x,y = coords[i]
+            x = canvas_w*0.1 + 0.8*canvas_w*float(x-low_x)/paint_width
+            y = canvas_h*0.1 + 0.8*canvas_h*float(y-low_y)/paint_height
+            coords[i] = (int(x),int(y))
+            
+        # restructurize canvas
+        self.canvas.delete(ALL)
+        for i in self.canvas_ids:
+            for j in descendants[i]:
+                self.canvas.create_line(coords[i][0],coords[i][1],\
+                                        coords[j][0],coords[j][1])
+        for i in self.canvas_ids:
+            t = self.canvas.create_text(coords[i][0],coords[i][1],\
+                                    text=self.rhythmletstack[i][0]+ " #"+str(i))
+            self.canvas.create_rectangle(*self.canvas.bbox(t),fill="white")
+            self.canvas.lift(t)
+
+        self.canvas.configure(scrollregion=self.canvas.bbox(ALL))
+        
 
     def get_next_name(self):
         x = self.next_name
