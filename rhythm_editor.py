@@ -57,6 +57,7 @@ class RhythmEditor(object):
         self.r_buttons.grid(row=1,column=0,sticky=W)
         self.next_name = "A"
         self.second_op = -1
+        self.canvas_op = -1
 
         def choose_second_op(event,s=self):
             row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
@@ -286,11 +287,16 @@ class RhythmEditor(object):
         for i in self.canvas_ids:
             t = self.canvas.create_text(coords[i][0],coords[i][1],\
                                     text=self.rhythmletstack[i][0]+ " #"+str(i))
-            self.canvas.create_rectangle(*self.canvas.bbox(t),fill="white")
+            b = self.canvas.create_rectangle(*self.canvas.bbox(t),fill="white")
             self.canvas.lift(t)
+            def choose_canvas_second_op(x=None,s=self,nbr=i):
+                s.canvas_op = nbr
+            self.canvas.tag_bind(t,"<Button-1>",choose_canvas_second_op)
+            self.canvas.tag_bind(b,"<Button-1>",choose_canvas_second_op)            
+            
 
         self.canvas.configure(scrollregion=self.canvas.bbox(ALL))
-        
+
 
     def get_next_name(self):
         x = self.next_name
