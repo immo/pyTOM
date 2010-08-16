@@ -27,6 +27,7 @@ from fractions import *
 from repgrep import *
 from messagebox import *
 from rhythmlet_editor import *
+from workspace import *
 import math
 
 

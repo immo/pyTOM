@@ -1,5 +1,14 @@
 
 # this file contains tool code for rapid testing
+
+import workspace
+workspace = reload(workspace)
+w = workspace.Workspace('/home/immanuel/Documents/drums/ext')
+w.update_directory()
+
+####
+
+
 import rhythm_editor
 
 rhythm_editor = reload(rhythm_editor)

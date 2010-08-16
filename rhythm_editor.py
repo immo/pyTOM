@@ -348,7 +348,7 @@ class RhythmEditor(object):
                 self.fill_table()
 
     def to_string(self):
-        data = []
+        data = ["Rhythm Desk"]
         for name,ref in self.rhythmletstack:
             data.append("Named Rhythmlet")
             data.append(repr(name))
@@ -357,3 +357,20 @@ class RhythmEditor(object):
             for k in ref.i_priorities.keys():
                 data.append(repr(ref.__dict__[k]))
         return "\n".join(data)
+
+    def from_string(self,s):
+        data = map(lambda x:str(x).strip(),s.split('\n')[1:]) #skip name id
+        i = 0
+        while i < len(data):
+            if data[i] == "Named Rhythmlet":
+                name = eval(data[i+1])
+                ref_times =eval(data[i+2])
+                priority_keys = eval(data[i+3])
+                i += 3
+                events = {}
+                for k in priority_keys:
+                    i += 1                    
+                    events[k] = eval(data[i])
+            else:
+                raise Exception("RhythmEditor: cannot recognize: ",data[i])
+            i += 1
