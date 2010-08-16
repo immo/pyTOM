@@ -29,7 +29,8 @@ import quicktix
 import utils
 
 class RhythmEditor(object):
-    def __init__(self,parent=None):
+    def __init__(self,parent=None,save_path=None):
+        self.save_path = None
         self.window = Toplevel(parent)
         self.window.title("Rhythm Editor Desk")
         self.rhythmletstack = []
@@ -189,6 +190,9 @@ class RhythmEditor(object):
         quicktix.add_balloon_button(self.__dict__,"upd_btn","c_buttons","Update",\
                                     update_canvas,\
                                     "Update shown relations on canvas.")
+
+        def save_to_path(x=None,s=self):
+            
 
         def reconfigure(x=None,s=self):
             s.update_canvas()
