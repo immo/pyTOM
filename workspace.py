@@ -22,7 +22,11 @@ from Tix import *
 from tktable import *
 from scrolldummy import *
 from messagebox import *
+import df.df_visual_concept_editor as vce
 
+
+vce.initialize_char_setup()
+vce.set_default_snippets()
 
 class Workspace(object):
     thingtest = re.compile(r"[ \t]*<\?xml.*\?>.*<things/?>")
