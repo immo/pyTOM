@@ -98,7 +98,7 @@ class Rhythmlet(object):
                                    'cy19china(ord)',\
                                    'cy19china(grb)',\
                                    None],\
-                    'feet': ['kd20punch','hh13ped',None]}
+                    'feet': ['kd20punch','hh13(ped)',None]}
 
     def __init__(self,*x):
         self.times = x
