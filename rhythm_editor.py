@@ -25,14 +25,18 @@ from fractions import *
 from messagebox import *
 from rhythmlet_editor import *
 from scrolldummy import *
-import quicktix
+import quicktix,os
 import utils
 
 class RhythmEditor(object):
     def __init__(self,parent=None,save_path=None):
-        self.save_path = None
+        self.save_path = save_path
+        self.last_save_string = "Rhythm Desk"
         self.window = Toplevel(parent)
-        self.window.title("Rhythm Editor Desk")
+        if save_path:
+            self.window.title(os.path.basename(save_path)+" Rhythm Editor Desk")
+        else:
+            self.window.title("Rhythm Editor Desk")
         self.rhythmletstack = []
         self.window.grid_columnconfigure(0,weight=0)
         self.window.grid_columnconfigure(1,weight=1)        
@@ -192,12 +196,36 @@ class RhythmEditor(object):
                                     "Update shown relations on canvas.")
 
         def save_to_path(x=None,s=self):
-            
+            if s.save_path:
+                path = str(s.save_path)
+            else:
+                path = ""
+            i = inputbox("Rhytm Desk "+path,"Path = $"+path+"$")
+            if i:
+                s.save_to(i[0])
+
+        quicktix.add_balloon_button(self.__dict__,"save_btn","c_buttons","Save",\
+                                    save_to_path,\
+                                    "Save the current rhythm desk.")
+                
 
         def reconfigure(x=None,s=self):
             s.update_canvas()
 
         self.window.bind("<Configure>",reconfigure)
+
+        def check_for_save(x=None,s=self):
+            if s.to_string() != s.last_save_string:
+                if s.save_path:
+                    path = str(s.save_path)
+                else:
+                    path = ""
+                if yesnobox("Rhythm Desk "+path,"Rhythm Desk has been changed.","",\
+                            "Do you want to save now?"):
+                    save_to_path(x,s)
+            s.window.destroy()
+
+        self.window.protocol("WM_DELETE_WINDOW",check_for_save)
         
         quicktix.min_win_size(self.window,600,400)
         quicktix.screencenter(self.window)
@@ -364,7 +392,10 @@ class RhythmEditor(object):
 
     def from_string(self,s):
         data = map(lambda x:str(x).strip(),s.split('\n')[1:]) #skip name id
+        data = filter(lambda x:x,data) # kill empty lines!
         i = 0
+        self.rhythmletstack = []
+        self.last_save_string = s
         while i < len(data):
             if data[i] == "Named Rhythmlet":
                 name = eval(data[i+1])
@@ -375,6 +406,19 @@ class RhythmEditor(object):
                 for k in priority_keys:
                     i += 1                    
                     events[k] = eval(data[i])
+                rhythmlet = Rhythmlet(*ref_times)
+                for k in events:
+                    rhythmlet.__dict__[k] = events[k]
+                self.rhythmletstack.append((name,ReferenceObject(rhythmlet),))             
             else:
                 raise Exception("RhythmEditor: cannot recognize: ",data[i])
             i += 1
+        self.fill_table()
+
+    def save_to(self,new_path=None):
+        if new_path:
+            self.save_path = new_path
+        if self.save_path:
+            self.last_save_string = self.to_string()
+            with open(self.save_path,'w') as f:
+                f.write(self.last_save_string)

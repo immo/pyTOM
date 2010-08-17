@@ -46,8 +46,10 @@ def messagebox(*lines):
         
     row = 0
     for l in lines:
-        lbl = Label(window,text=str(l))
+        ltext = str(l)
+        lbl = Label(window,text=ltext)
         lbl.grid(row=row,column=0,sticky=W)
+        print(lbl.winfo_width())
         row += 1
         
     def okay_action(x=None,w=window):
@@ -63,6 +65,79 @@ def messagebox(*lines):
     window.bind("<KP_Enter>",okay_action)    
     window.bind("<Escape>",okay_action)
 
+    window.update()
+
+    w = window.winfo_width()
+    h = window.winfo_height()
+
+    if w < 120:
+        w = 120
+    if h < 80:
+        h = 80
+    window.wm_geometry("%ix%i"%(w,h))
+
+    window.title(caption)
+    screencenter(window)
+    modalwait(window)
+
+def yesnobox(*lines):
+    """ ([parent_window], ... text-lines)
+    prints a message box with parent_window as parent and
+    text-lines as each line of text. If multiple lines are given,
+    the first line will be used as messagebox caption """
+    try:
+        if "tk" in lines[0].__dict__:
+            parent = lines[0]
+            lines = lines[1:]
+        else:
+            parent = None
+    except:
+        parent = None
+    if parent:
+        window = Toplevel(parent)
+    else:
+        window = Toplevel()
+    if len(lines) < 2:
+        caption = "Notice!"
+    else:
+        caption = str(lines[0])
+        lines = lines[1:]
+    if not lines:
+        lines = ["Nothing to say!"]
+        
+    row = 0
+    for l in lines:
+        lbl = Label(window,text=str(l))
+        lbl.grid(row=row,column=0,sticky=W)
+        row += 1
+
+    cancelled = {"cancel":False}
+
+    def okay_action(x=None,w=window):
+        w.destroy()
+
+    def cancel_action(x=None,w=window,c=cancelled):
+        c["cancel"] = True
+        w.destroy()
+        
+    btnbar = Frame(window)
+    btnbar.grid(row=row,column=0,sticky=S)
+
+    btn = Button(btnbar,text="Yes",command=okay_action)
+    btn.pack(side=LEFT)
+
+    btn2 = Button(btnbar,text="No",command=cancel_action)
+    btn2.pack(side=LEFT)
+    
+    window.grid_columnconfigure(0,weight=1)
+    window.grid_rowconfigure(row,weight=1)
+
+    window.bind("<Return>",okay_action)
+    window.bind("<KP_Enter>",okay_action)    
+    window.bind("<Escape>",cancel_action)
+
+    window.update()
+
     w = window.winfo_width()
     h = window.winfo_height()
     if w < 120:
@@ -74,6 +149,8 @@ def messagebox(*lines):
     window.title(caption)
     screencenter(window)
     modalwait(window)
+    return not cancelled["cancel"]
+
 
 def inputbox(*lines):
     """ like messagebox, but lines ending with $ will be prompted for input,
@@ -138,7 +215,7 @@ def inputbox(*lines):
         w.destroy()
 
     btnbar = Frame(window)
-    btnbar.grid(row=row,column=0,columnspan=2,sticky=E+W+S)
+    btnbar.grid(row=row,column=0,columnspan=2,sticky=S)
 
     btn = Button(btnbar,text="Okay",command=okay_action)
     btn.pack(side=LEFT)
@@ -153,10 +230,12 @@ def inputbox(*lines):
     window.bind("<KP_Enter>",okay_action)    
     window.bind("<Escape>",cancel_action)
 
+    window.update()
+
     w = window.winfo_width()
     h = window.winfo_height()
-    if w < 300:
-        w = 300
+    if w < 420:
+        w = 420
     if h < 100:
         h = 100
     window.wm_geometry("%ix%i"%(w,h))
