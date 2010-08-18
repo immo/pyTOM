@@ -25,6 +25,30 @@ import tktable,quicktix
 from scrolldummy import *
 
 class SongEditor(object):
+    regexps = [re.compile("\\s*taxa\\s*=.*")]
+    colors = [{"foreground":"#CC0044","background":"#DDDDDD","font":"courier 12"}]
+    regexps.append(re.compile("\\s*grammar\\s*=.*"))
+    colors.append({"foreground":"#000088","background":"#777777","font":"courier 12"})
+    regexps.append(re.compile("\\s*length\\*?\\s*=.*"))
+    colors.append({"foreground":"#FFFF00","background":"#000000",\
+                   "font":"courier 12 bold"})
+    regexps.append(re.compile("\\s*bpm\\s*=.*"))
+    colors.append({"foreground":"#FFFF00","background":"#000000",\
+                   "font":"courier 12 bold"})
+    regexps.append(re.compile("\\s*rhythms\\s*=.*"))
+    colors.append({"foreground":"#00FFFF","background":"#000000",\
+                   "font":"courier 12 bold"})
+    regexps.append(re.compile("\\s*initial\\s*=.*"))
+    colors.append({"foreground":"#FF00FF","background":"#000000",\
+                   "font":"courier 12 bold"})
+    regexps.append(re.compile("\\s*things\\s*=.*"))
+    colors.append({"foreground":"#FF3333","background":"#000000",\
+                   "font":"courier 12 bold"})
+    regexps.append(re.compile("\\:.*"))
+    colors.append({"foreground":"#FFFFFF","background":"#000000",\
+                   "font":"courier 12"})
+
+    
     def __init__(self,parent=None,path="",data=""):
         self.window = Toplevel(parent)
         self.name = os.path.basename(path)+' Song Editor'
@@ -34,6 +58,9 @@ class SongEditor(object):
         self.window.grid_rowconfigure(0,weight=1)
         self.text = ScrolledText(self.window)
         self.text.grid(row=0,column=0,sticky=N+E+S+W)
+        self.text.subwidget("text").configure(foreground="#FFFFFF",background="#666666",\
+                                              font="courier 12",\
+                                              insertbackground="#FFFFFF")
         self.balloon = Balloon(self.window)
         self.tcontainer = Frame(self.window)
         self.tcontainer.grid(row=0,column=1,sticky=N+S+E+W)
@@ -81,17 +108,45 @@ class SongEditor(object):
 
         for txt in ["grammar=","length*=","bpm=","initial=","things=",\
                     "rhythms=",":","::",":::","::::","taxa="]:
-            def add_to_text(x=None,s=self,txt=txt):
-                s.text.subwidget("text").insert("insert lineend + 1c",txt+"\n")
+            txt2 = " "*(10-len(txt)) + txt
+            txt2 = txt2.replace("="," = ")
+            if txt.startswith(':'):
+                txt2 = txt+" "
+            def add_to_text(x=None,s=self,txt=txt2):
+                line = int(s.text.subwidget("text").index("insert").split(".")[0])
+                lastline = int(s.text.subwidget("text").index(END).split(".")[0])
+                if line == lastline:
+                    s.text.subwidget("text").insert("insert lineend","\n"+txt+"\n")
+                else:
+                    s.text.subwidget("text").insert("insert lineend","\n"+txt)
+                s.text.subwidget("text").mark_set("insert","%i.%i"%(line+1,len(txt)))
+                s.colorize_text_widget()
+                s.text.subwidget("text").focus_set()
+                
             quicktix.add_balloon_button(self.__dict__, "btn_txt"+txt,\
                                         "line_starts",txt,\
                                         add_to_text,\
                                         "Add "+txt+" line after insert line.")
 
+        self.colorize_text_widget()
+        
         screencenter(self.window)
 
+    def colorize_text_widget(self):
+        data = self.text.subwidget("text").get("1.0",END).split("\n")
+        for i in range(len(self.regexps)):
+            self.text.subwidget("text").tag_delete("colorize%i"%i)
+            self.text.subwidget("text").tag_config("colorize%i"%i, **self.colors[i])
+            self.text.subwidget("text").tag_lower("colorize%i"%i)
+
+        for text,line in zip(data,range(1,len(data)+1)):
+            for i in range(len(self.regexps)):
+                if self.regexps[i].match(text):
+                    self.text.subwidget("text").tag_add("colorize%i"%i,"%i.0"%line,\
+                                                        "%i.0"%(line+1))
+                    break
 
 if __name__ == "__main__":
     root = Tk()
     root.wm_withdraw()
-    SongEditor(root)
+    x = SongEditor(root)
