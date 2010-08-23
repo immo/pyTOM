@@ -26,12 +26,27 @@ from tktable import *
 from fractions import *
 from repgrep import *
 from messagebox import *
-from rhythmlet_editor import *
-from workspace import *
+import workspace
+import song_editor
 import math
 
+def open_workspace(path='/home/immanuel/Documents/drums/ext',update_code=True):
+    global w, workspace, song_editor
+    if update_code:
+        workspace = reload(workspace)
+        song_editor = reload(song_editor)
+    w = workspace.Workspace(path,root)
+    
+def open_sandbox():
+    global s
+    s = SandboxInteraction(root)
 
 if __name__ == "__main__":
+    root = Tk()
+    root.withdraw()
     print("*let Editor")
-    root = SandboxInteraction()
-    root.mainloop()
+    open_sandbox()
+    open_workspace()
+    root.wait_window(s.window)
+else:
+    root = None

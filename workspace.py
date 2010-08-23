@@ -26,6 +26,7 @@ import df.df_visual_concept_editor as vce
 import df.df_xml_thing as xt
 import quicktix
 import rhythm_editor
+import song_editor
 
 def call_editor(path):
     try:
@@ -220,6 +221,10 @@ class Workspace(object):
             SnippetEditor(path,self.window)
         elif editor == 'rhythms':
             ed = rhythm_editor.RhythmEditor(self.window,path)
+            with open(path,'r') as f:
+                ed.from_string(f.read())
+        elif editor == "song":
+            ed = song_editor.SongEditor(self.window,path)
             with open(path,'r') as f:
                 ed.from_string(f.read())
         else:

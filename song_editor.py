@@ -26,9 +26,11 @@ from scrolldummy import *
 
 class SongEditor(object):
     regexps = [re.compile("\\s*taxa\\s*=.*")]
-    colors = [{"foreground":"#CC0044","background":"#DDDDDD","font":"courier 12"}]
+    colors = [{"foreground":"#CC0044","background":"#DDDDDD",\
+               "font":"courier 12"}]
     regexps.append(re.compile("\\s*grammar\\s*=.*"))
-    colors.append({"foreground":"#000088","background":"#777777","font":"courier 12"})
+    colors.append({"foreground":"#999999","background":"#000000",\
+                   "font":"courier 12"})
     regexps.append(re.compile("\\s*length\\*?\\s*=.*"))
     colors.append({"foreground":"#FFFF00","background":"#000000",\
                    "font":"courier 12 bold"})
@@ -45,20 +47,25 @@ class SongEditor(object):
     colors.append({"foreground":"#FF3333","background":"#000000",\
                    "font":"courier 12 bold"})
     regexps.append(re.compile("\\:.*"))
-    colors.append({"foreground":"#FFFFFF","background":"#000000",\
+    colors.append({"foreground":"#FFFFFF","background":"#333333",\
+                   "font":"courier 12"})
+    regexps.append(re.compile("\\s*postprocess\\s*=.*"))
+    colors.append({"foreground":"cyan","background":"#330000",\
                    "font":"courier 12"})
 
     
-    def __init__(self,parent=None,path="",data=""):
+    def __init__(self,parent=None,path=""):
         self.window = Toplevel(parent)
         self.name = os.path.basename(path)+' Song Editor'
         self.path = path
+        self.saved_data = ""
         self.window.title(self.name)
         self.window.grid_columnconfigure(0,weight=1)
         self.window.grid_rowconfigure(0,weight=1)
         self.text = ScrolledText(self.window)
         self.text.grid(row=0,column=0,sticky=N+E+S+W)
-        self.text.subwidget("text").configure(foreground="#FFFFFF",background="#666666",\
+        self.text.subwidget("text").configure(foreground="cyan",\
+                                              background="#000000",\
                                               font="courier 12",\
                                               insertbackground="#FFFFFF")
         self.balloon = Balloon(self.window)
@@ -107,7 +114,8 @@ class SongEditor(object):
         self.line_starts.grid(row=2,column=0,columnspan=2,sticky=W)
 
         for txt in ["grammar=","length*=","bpm=","initial=","things=",\
-                    "rhythms=",":","::",":::","::::","taxa="]:
+                    "rhythms=","depth=","postprocess=",":","::",":::",\
+                    "::::","taxa="]:
             txt2 = " "*(10-len(txt)) + txt
             txt2 = txt2.replace("="," = ")
             if txt.startswith(':'):
@@ -128,9 +136,35 @@ class SongEditor(object):
                                         add_to_text,\
                                         "Add "+txt+" line after insert line.")
 
+        self.right_buttons = Frame(self.window)
+        self.right_buttons.grid(row=1,column=1,sticky=E)
+
+        def save_cmd(x=None,s=self):
+            pass
+        
+        def upd_cmd(x=None,s=self):
+            pass
+
+
+        quicktix.add_balloon_button(self.__dict__,"btn_update","right_buttons",\
+                                    "Update", upd_cmd,\
+                                "Update the table and the text colorization.")
+        quicktix.add_balloon_button(self.__dict__,"btn_save","right_buttons",\
+                                    "Save", save_cmd,"Save the current file.",)
+        
+
         self.colorize_text_widget()
         
         screencenter(self.window)
+
+    def from_string(self,s):
+        self.saved_data = s
+        self.text.subwidget("text").delete("1.0",END)
+        self.text.subwidget("text").insert(END,s)
+        self.colorize_text_widget()
+
+    def to_string(self):
+        return self.text.subwidget("text").get("1.0",END)
 
     def colorize_text_widget(self):
         data = self.text.subwidget("text").get("1.0",END).split("\n")
