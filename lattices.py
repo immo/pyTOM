@@ -329,6 +329,8 @@ class Chordlet(object):
         self.chord.sort()
 
     def cmp(self,r):
+        if r == None:
+            return "|"
         l_less = self.s_priority.index(self.style) <= self.s_priority.index(r.style)
         r_less = self.s_priority.index(self.style) >= self.s_priority.index(r.style)
         if len(self.chord) <= len(r.chord):
@@ -388,4 +390,137 @@ class Chordlet(object):
         join = Chordlet(style)
         join.chord = chord
         join.frets = makefretting(chord,self.g_tuning)
+        return join
+
+# onset-hold-*let for chords
+
+class Metalet(object):
+    none_default = Chordlet("")
+    
+    def __init__(self,*x):
+        self.times = x
+        d = self.__dict__
+        self.lets = [None] * len(x)
+        
+    def actual_hit_times(self):
+        return set([self.times[i] for i in range(len(self.times))\
+                if not self.lets[i] == None])
+
+    def at(self,t):
+        try:
+            i = self.times.index(t)
+            return self.lets[i]
+        except:
+            return None
+
+    def hold_at(self,t):
+        before = [x for x in self.times if x <= t and self.at(x)]
+        if before:
+            return self.at(max(before))
+        else:
+            return None
+
+    def hold_cmp(self,t):
+        x = self.hold_at(t)
+        if x == None:
+            return self.none_default
+        else:
+            return x
+    
+    def sort(self):
+        sorted_time = list(self.times)
+        sorted_time.sort()
+        sorted = [self.at(sorted_time[i]) \
+                    for i in range(len(sorted_time))]
+        self.lets = sorted
+        self.times = sorted_time
+
+    def add_to_time_grid(self,*times):
+        new_times = [t for t in times if not t in self.times]
+        new_none = [None]*len(new_times)
+        self.times = list(self.times) + new_times
+        self.lets = list(self.lets) + new_none
+
+    def del_times(self,*times):
+        new_times = [t for t in self.times if not t in times]
+        updated = [self.at(new_times[i]) \
+                     for i in range(len(new_times))]
+        self.lets = updated
+        self.times = new_times
+
+    def compactify_times(self):
+        new_times = [t for t in self.times \
+                     if self.at(t)]
+        updated = [self.at(new_times[i]) \
+                      for i in range(len(new_times))]
+        self.lets = updated
+        self.times = new_times
+
+    def compactify(self):
+        actual = list(self.actual_hit_times())
+        actual.sort()
+        del_t = []
+        for t0,t1 in zip(actual[:-1],actual[1:]):
+            if self.hold_cmp(t0) == self.hold_cmp(t1):
+                del_t.append(t1)
+        self.del_times(*del_t)
+        self.compactify_times()
+
+    def __ge__(self,r):
+        return self.cmp(r) in [">","="]
+
+    def __gt__(self,r):
+        return self.cmp(r) == ">"
+
+    def __le__(self,r):
+        return self.cmp(r) in ["<","="]
+
+    def __lt__(self,r):
+        return self.cmp(r) == "<"
+
+    def __eq__(self,r):
+        return self.cmp(r) == "="
+
+    def cmp(self,r):
+        sample_t = set(self.actual_hit_times()) |\
+                   set(r.actual_hit_times())
+        l_not_less = False
+        r_not_less = False
+        for t in sample_t:
+            l = self.hold_cmp(t)
+            r = r.hold_cmp(t)
+            if not l <= r:
+                l_not_less = True
+            if not r <= l:
+                r_not_less = True
+        if l_not_less and r_not_less:
+            return "|"
+        elif l_not_less:
+            return ">"
+        elif r_not_less:
+            return "<"
+        else:
+            return "="
+
+    def __and__(self,r):
+        sample_t = list(set(self.actual_hit_times()) |\
+                   set(r.actual_hit_times()))
+        sample_t.sort()
+        meet = Metalet(*sample_t)
+        for i in range(len(sample_t)):
+            meet.lets[i] = self.hold_cmp(sample_t[i]) &\
+                           r.hold_cmp(sample_t[i])
+        meet.compactify()
+        return meet
+
+
+    def __or__(self,r):
+        sample_t = list(set(self.actual_hit_times()) |\
+                   set(r.actual_hit_times()))
+        sample_t.sort()
+        join = Metalet(*sample_t)
+        for i in range(len(sample_t)):
+            join.lets[i] = self.hold_cmp(sample_t[i]) |\
+                           r.hold_cmp(sample_t[i])
+        join.compactify()
         return join
