@@ -61,6 +61,10 @@ class SongEditor(object):
     regexps.append(re.compile("\\s*postprocess\\s*=.*"))
     colors.append({"foreground":"cyan","background":"#330000",\
                    "font":"courier 12"})
+    names.append("depth")
+    regexps.append(re.compile("\\s*depth\\s*=.*"))
+    colors.append({"foreground":"cyan","background":"#000000",\
+                   "font":"courier 12"})
 
 
     
@@ -70,6 +74,8 @@ class SongEditor(object):
         self.path = path
         self.saved_data = ""
         self.line_type = None
+        self.table_data = {}
+        self.table_scroll = {}
         self.window.title(self.name)
         self.window.grid_columnconfigure(0,weight=1)
         self.window.grid_rowconfigure(0,weight=1)
@@ -154,7 +160,8 @@ class SongEditor(object):
             pass
         
         def upd_cmd(x=None,s=self):
-            pass
+            s.prepare_table_data()
+            s.table_update()
 
 
         quicktix.add_balloon_button(self.__dict__,"btn_update","right_buttons",\
@@ -186,11 +193,27 @@ class SongEditor(object):
         self.text.subwidget("text").bind("<Button-1>",tbl_update)
         self.text.subwidget("text").bind("<Double-Button-1>",tbl_select_dbl)
         self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)        
-        
+
+        def refocus_text(x=None,s=self):
+            s.text.subwidget("text").focus_set()
+
+        self.table.bind("<Button-1>",refocus_text)
+        self.table.bind("<Double-Button-1>",refocus_text)
+        self.table.bind("<Triple-Button-1>",refocus_text)
+
+        self.prepare_table_data()
+
 
         self.colorize_text_widget()
         self.text.subwidget("text").focus_set()
         screencenter(self.window)
+
+    def prepare_table_data(self):
+        data = {}
+        data['bpm'] = "60,90,100,120,130,135,140,150,160,175,180,190,200,205,210,220,240,260".split(",")
+        data['depth'] = "1,2,3,4,5,8,12,16".split(",")
+        data['length'] = "1,2,3,4,6,8,12,16".split(",")
+        self.table_data = data
 
     def table_update(self):
         line = int(self.text.subwidget("text").index("insert").split(".")[0])
@@ -200,6 +223,17 @@ class SongEditor(object):
             if r.match(data):
                 new_type = n
 
+        self.table_scroll[self.line_type] = self.table.xview()[0]
+        
+        if new_type in self.table_data:
+            new_data = self.table_data[new_type]
+        else:
+            new_data = ["n/a"]
+        self.tvariable.set("-1,0",new_type)            
+        for i in range(len(new_data)):
+            self.tvariable.set("%i,0"%i,new_data[i])
+        self.table.configure(rows=len(new_data)+1)
+        
         self.line_type = new_type
 
 
