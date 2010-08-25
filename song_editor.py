@@ -25,33 +25,43 @@ import tktable,quicktix
 from scrolldummy import *
 
 class SongEditor(object):
+    names = ["taxa"]
     regexps = [re.compile("\\s*taxa\\s*=.*")]
     colors = [{"foreground":"#CC0044","background":"#DDDDDD",\
                "font":"courier 12"}]
+    names.append("grammar")
     regexps.append(re.compile("\\s*grammar\\s*=.*"))
     colors.append({"foreground":"#999999","background":"#000000",\
                    "font":"courier 12"})
+    names.append("length")    
     regexps.append(re.compile("\\s*length\\*?\\s*=.*"))
     colors.append({"foreground":"#FFFF00","background":"#000000",\
                    "font":"courier 12 bold"})
+    names.append("bpm")    
     regexps.append(re.compile("\\s*bpm\\s*=.*"))
     colors.append({"foreground":"#FFFF00","background":"#000000",\
                    "font":"courier 12 bold"})
+    names.append("rhythms")    
     regexps.append(re.compile("\\s*rhythms\\s*=.*"))
     colors.append({"foreground":"#00FFFF","background":"#000000",\
                    "font":"courier 12 bold"})
+    names.append("initial")    
     regexps.append(re.compile("\\s*initial\\s*=.*"))
     colors.append({"foreground":"#FF00FF","background":"#000000",\
                    "font":"courier 12 bold"})
+    names.append("things")    
     regexps.append(re.compile("\\s*things\\s*=.*"))
     colors.append({"foreground":"#FF3333","background":"#000000",\
                    "font":"courier 12 bold"})
+    names.append(":")    
     regexps.append(re.compile("\\:.*"))
     colors.append({"foreground":"#FFFFFF","background":"#333333",\
                    "font":"courier 12"})
+    names.append("postprocess")    
     regexps.append(re.compile("\\s*postprocess\\s*=.*"))
     colors.append({"foreground":"cyan","background":"#330000",\
                    "font":"courier 12"})
+
 
     
     def __init__(self,parent=None,path=""):
@@ -59,6 +69,7 @@ class SongEditor(object):
         self.name = os.path.basename(path)+' Song Editor'
         self.path = path
         self.saved_data = ""
+        self.line_type = None
         self.window.title(self.name)
         self.window.grid_columnconfigure(0,weight=1)
         self.window.grid_rowconfigure(0,weight=1)
@@ -151,11 +162,132 @@ class SongEditor(object):
                                 "Update the table and the text colorization.")
         quicktix.add_balloon_button(self.__dict__,"btn_save","right_buttons",\
                                     "Save", save_cmd,"Save the current file.",)
+
+        def tbl_update(x=None,s=self):
+            s.text.subwidget("text").mark_set("insert",s.text.subwidget("text").index("@%i,%i"%(x.x,x.y)))
+            ranges = s.text.subwidget("text").tag_ranges(SEL)
+            if ranges:
+                start = s.text.subwidget("text").index(ranges[0])
+                end = s.text.subwidget("text").index(ranges[1])
+                s.text.subwidget("text").tag_remove(SEL,start,end)
+            
+            s.text.subwidget("text").focus_set()
+            s.table_update()
+            return "break"
+
+        def tbl_select_dbl(x=None,s=self):
+            s.select_current_fragment()
+            return "break"
+
+        def tbl_select_trp(x=None,s=self):
+            s.select_current_values()
+            return "break"
+
+        self.text.subwidget("text").bind("<Button-1>",tbl_update)
+        self.text.subwidget("text").bind("<Double-Button-1>",tbl_select_dbl)
+        self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)        
         
 
         self.colorize_text_widget()
-        
+        self.text.subwidget("text").focus_set()
         screencenter(self.window)
+
+    def table_update(self):
+        line = int(self.text.subwidget("text").index("insert").split(".")[0])
+        data = self.text.subwidget("text").get("%i.0"%line,"%i.end"%line)
+        new_type = None
+        for n,r in zip(self.names,self.regexps):
+            if r.match(data):
+                new_type = n
+
+        self.line_type = new_type
+
+
+    def select_current_fragment(self):
+        line,column = map(lambda x:int(x),self.text.subwidget("text").index("insert").split("."))
+        
+        data = self.text.subwidget("text").get("%i.0"%line,"%i.end"%line)
+        ranges = self.text.subwidget("text").tag_ranges(SEL)
+        if ranges:
+            start = self.text.subwidget("text").index(ranges[0])
+            end = self.text.subwidget("text").index(ranges[1])
+            self.text.subwidget("text").tag_remove(SEL,start,end)
+        before = data[:column]
+        after = data[column:]
+        if self.line_type in ["rhythms","things"]:
+            ttr = len(after)
+            if ";" in after:
+                ttr = after.index(";")+1
+            end = ttr + len(before)
+            if ";" in before:
+                start = before.rindex(";")+1
+            elif "=" in before:
+                start = before.index("=")+1
+                if len(before) > start+1:
+                    if before[start+1].isspace():
+                        start += 1
+            elif "=" in after:
+                start = after.index("=")+1
+                if len(after) > start +1:
+                    if after[start+1].isspace():
+                        start += 1
+                start += len(before)
+            else:
+                start = 0
+            self.text.subwidget("text").tag_add(SEL,"%i.%i"%(line,start),"%i.%i"%(line,end))
+        elif self.line_type in ["initial"]:
+            ttr = len(after)
+            if ")" in after:
+                ttr = after.index(")")+1
+            end = ttr + len(before)
+            if ")" in before:
+                start = before.rindex(")")+1
+            elif "=" in before:
+                start = before.index("=")+1
+                if len(before) > start+1:
+                    if before[start+1].isspace():
+                        start += 1
+            elif "=" in after:
+                start = after.index("=")+1
+                if len(after) > start +1:
+                    if after[start+1].isspace():
+                        start += 1
+                start += len(before)
+            else:
+                start = 0
+            self.text.subwidget("text").tag_add(SEL,"%i.%i"%(line,start),"%i.%i"%(line,end))
+        elif not self.line_type == ":":
+            self.select_current_values()
+
+    
+    def select_current_values(self):
+        line = int(self.text.subwidget("text").index("insert").split(".")[0])
+        data = self.text.subwidget("text").get("%i.0"%line,"%i.end"%line)
+
+        ranges = self.text.subwidget("text").tag_ranges(SEL)
+        if ranges:
+            start = self.text.subwidget("text").index(ranges[0])
+            end = self.text.subwidget("text").index(ranges[1])
+            self.text.subwidget("text").tag_remove(SEL,start,end)
+
+
+        if self.line_type == ":":
+            idx = 0
+            while (idx < len(data)) and data[idx] == ":":
+                idx += 1
+            self.text.subwidget("text").tag_add(SEL,"%i.%i"%(line,idx),"%i.end"%line)
+            return
+
+
+        if "=" in data:
+            eqn = data.index("=")
+            if len(data) > eqn+1:
+                if data[eqn+1].isspace():
+                    eqn += 1
+            self.text.subwidget("text").tag_add(SEL,"%i.%i"%(line,eqn+1),"%i.end"%line)
+        else:
+            self.text.subwidget("text").tag_add(SEL,"%i.0"%line,"%i.end"%line)
+
 
     def from_string(self,s):
         self.saved_data = s
