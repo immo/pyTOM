@@ -223,7 +223,7 @@ class SongEditor(object):
             if r.match(data):
                 new_type = n
 
-        self.table_scroll[self.line_type] = self.table.xview()[0]
+        self.table_scroll[self.line_type] = self.table.yview()[0]
         
         if new_type in self.table_data:
             new_data = self.table_data[new_type]
@@ -233,6 +233,9 @@ class SongEditor(object):
         for i in range(len(new_data)):
             self.tvariable.set("%i,0"%i,new_data[i])
         self.table.configure(rows=len(new_data)+1)
+
+        if new_type in self.table_scroll:
+            self.table.yview_moveto(self.table_scroll[new_type])
         
         self.line_type = new_type
 
