@@ -306,21 +306,93 @@ def processtabline(s,tuning):
                     index += spacemap[0]                                                
     return chord, frets, style
 
-def makefretting(sortedchord, tuning): #TODO, dummy placeholder
-    frets = [None] * len(tuning)
-    index = 0
-    for x in sortedchord:
-        if index < len(tuning):
-            while index < len(tuning) and (x-tuning[index]) > 24:
-                index += 1
-            frets[index] = x - tuning[index]
-        index += 1
+def iscorrectfingering(sortedchord, tuning, fingering):
+    tunlen = len(tuning)
+    choosen = [False] * tunlen
+    for c in sortedchord:
+        not_found = True
+        for i in range(tunlen):
+            if choosen[i] or fingering[i] == None:
+                continue
+            if tuning[i] + fingering[i] == c:
+                not_found = False
+                choosen[i] = True
+                break
+        if not_found:
+            return False
+    for f,n in zip(choosen,fingering):
+        if f == False and n != None:
+            return False
+    return True
+
+def decidebetterfingering(a,b,context=None):
+    useda = filter(lambda x:x!=None, a)
+    usedb = filter(lambda x:x!=None, b)
+    lowa = min(useda) < 5
+    lowb = min(usedb) < 5
+    higha = max(useda) > 12
+    highb = max(usedb) > 12
+
+    if lowa and lowb:
+        if min(useda) >= min(usedb):
+            return a
+        else:
+            return b
+    if lowa:
+        return b
+    if lowb:
+        return a
+
+    if higha and highb:
+        if max(useda) <= max(usedb):
+            return a
+        else:
+            return b
+    if higha:
+        return b
+
+    return a
+
+def makefretting(sortedchord, tuning, fingerings, context=None):
+    chord = sortedchord
+    tunlen = len(tuning)
+    frets = [None] * tunlen
+    chordlen = len(chord)
+    if chordlen > tunlen:
+        return frets
+
+    for stencil,count,lowest in fingerings:
+        if count != chordlen:
+            continue
+        sidx = 0
+        newfrets = [None] * tunlen
+        offset = chord[0] - tuning[lowest] - stencil[lowest]
+        for cidx in range(chordlen):
+            while stencil[sidx] == None:
+                sidx += 1
+            newfrets[sidx] = stencil[sidx] + offset
+            sidx += 1
+
+        usedfrets = filter(lambda x:x!=None, newfrets)
+        if min(usedfrets) >= 0   and \
+           max(usedfrets) <= 24  and \
+           iscorrectfingering(chord, tuning, newfrets):
+            if iscorrectfingering(chord, tuning, frets):
+                frets = decidebetterfingering(frets,newfrets)
+            else:
+                frets = newfrets
+    
     return frets
 
 class Chordlet(object):
     g_tuning = [2,-3,-7,-12,-17,-22,-29]
     g_tuning.reverse()
     s_priority = ['.','l',"",'s']
+
+    plain_fingerings = [[None]*i + [0]*(j+1) + [None]*(6-j-i) for j in range(5) for i in range(7-j)]
+    good_fingerings = [(x, len(filter(lambda z: z!=None,x)),\
+                        min(filter(lambda i,x=x:x[i]!=None,range(len(x)))))\
+                       for x in plain_fingerings]
 
     def __init__(self,chordstring):
         self.chordstring = chordstring
@@ -377,7 +449,7 @@ class Chordlet(object):
         chord.sort()
         meet = Chordlet(style)
         meet.chord = chord
-        meet.frets = makefretting(chord,self.g_tuning)
+        meet.frets = makefretting(chord,self.g_tuning,self.good_fingerings)
         return meet
 
     def __or__(self,r):
@@ -392,7 +464,7 @@ class Chordlet(object):
         chord.sort()
         join = Chordlet(style)
         join.chord = chord
-        join.frets = makefretting(chord,self.g_tuning)
+        join.frets = makefretting(chord,self.g_tuning,self.good_fingerings)
         return join
 
 # onset-hold-*let for chords
