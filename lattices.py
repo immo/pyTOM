@@ -504,7 +504,6 @@ class Chordlet(object):
             else:
                 s += str(f)
             lastnbr = f
-
         s += " "+self.style
         return "Chordlet("+repr(s)+")"
 
