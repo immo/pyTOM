@@ -389,10 +389,23 @@ class Chordlet(object):
     g_tuning.reverse()
     s_priority = ['.','l',"",'s']
 
-    plain_fingerings = [[None]*i + [0]*(j+1) + [None]*(6-j-i) for j in range(5) for i in range(7-j)]
+    moveables = [[0]*(i+1) for i in range(5)] +\
+                [[0,None,i] for i in range(4)] +\
+                [[i,None,0] for i in range(1,3)] +\
+                [[0,i] for i in range(1,5)] +\
+                [[i,0] for i in range(1,3)] +\
+                [[0,i,j] for i in range(1,4) for j in range(1,5)] +\
+                [[i,0,j] for i in range(1,3) for j in range(1,5)] +\
+                [[i,j,0] for i in range(1,4) for j in range(1,4) if j <= i]
+
+
+    plain_fingerings = [tuple([None]*(len(g_tuning)-len(m)-i) + m + [None]*i) \
+                        for m in moveables \
+                        for i in range(len(g_tuning)+1-len(m))]
+
     good_fingerings = [(x, len(filter(lambda z: z!=None,x)),\
                         min(filter(lambda i,x=x:x[i]!=None,range(len(x)))))\
-                       for x in plain_fingerings]
+                       for x in set(plain_fingerings)]
 
     def __init__(self,chordstring):
         self.chordstring = chordstring
@@ -466,6 +479,34 @@ class Chordlet(object):
         join.chord = chord
         join.frets = makefretting(chord,self.g_tuning,self.good_fingerings)
         return join
+
+    def setchord(self,chord):
+        self.chord = chord
+        self.frets = makefretting(chord,self.g_tuning,self.good_fingerings)
+        return self
+
+    def __repr__(self):
+        if not iscorrectfingering(self.chord,self.g_tuning,self.frets):
+            return "Chordlet("+repr(self.style)+").setchord("+repr(self.chord)+")"
+        s = ""
+        lastnbr = None
+        for f in self.frets:
+            if f == None:
+                s += "-"
+            elif lastnbr == 1:
+                s += " "+str(f)
+            elif lastnbr == 2:
+                sf = str(f)
+                if sf[0] in "01234":
+                    s += " " + sf
+                else:
+                    s += sf
+            else:
+                s += str(f)
+            lastnbr = f
+
+        s += " "+self.style
+        return "Chordlet("+repr(s)+")"
 
 # onset-hold-*let for chords
 
