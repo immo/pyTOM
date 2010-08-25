@@ -68,8 +68,9 @@ class SongEditor(object):
 
 
     
-    def __init__(self,parent=None,path=""):
+    def __init__(self,parent=None,path="",workspace=None):
         self.window = Toplevel(parent)
+        self.workspace = workspace
         self.name = os.path.basename(path)+' Song Editor'
         self.path = path
         self.saved_data = ""
@@ -110,6 +111,8 @@ class SongEditor(object):
 
         self.time_container = Frame(self.window)
         self.time_container.grid(row=1,column=0,sticky=W)
+
+        self.table_row = None
 
         self.time = Entry(self.time_container,width=8)
         self.time.pack(side=RIGHT)
@@ -195,11 +198,18 @@ class SongEditor(object):
         self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)        
 
         def refocus_text(x=None,s=self):
+            s.table_row = int(s.table.index("@%i,%i"%(x.x,x.y)).split(",")[0])
             s.text.subwidget("text").focus_set()
+
+        def insert_text(x=None,s=self):
+            s.table_row = int(s.table.index("@%i,%i"%(x.x,x.y)).split(",")[0])
+            s.table_text()
 
         self.table.bind("<Button-1>",refocus_text)
         self.table.bind("<Double-Button-1>",refocus_text)
         self.table.bind("<Triple-Button-1>",refocus_text)
+
+        self.table.bind("<Double-Button-1>",insert_text)        
 
         self.prepare_table_data()
 
@@ -207,6 +217,28 @@ class SongEditor(object):
         self.colorize_text_widget()
         self.text.subwidget("text").focus_set()
         screencenter(self.window)
+
+    def table_text(self):
+        print(self.table_row)
+        if not self.line_type in self.table_data:
+            return
+        tbl = self.table_data[self.line_type]
+        if 0 <= self.table_row < len(tbl):
+            datum = tbl[self.table_row]
+            line,column = map(lambda x:int(x),self.text.subwidget("text").index("insert").split("."))
+            data = self.text.subwidget("text").get("%i.0"%line,"%i.end"%line)
+            if self.line_type in ["rhythms","things"]:
+                before = data[:column]
+                after = data[column:]
+            elif self.line_type in ["initial"]:
+                before = data[:column]
+                after = data[column:]
+            elif "=" in data:
+                eqn = data.index("=")+1
+                self.text.subwidget("text").delete("%i.%i"%(line,eqn),"%i.%i"%(line,len(data)))
+                self.text.subwidget("text").insert("%i.%i"%(line,eqn)," "+datum)
+        self.text.subwidget("text").focus_set()
+            
 
     def prepare_table_data(self):
         data = {}
