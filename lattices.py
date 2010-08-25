@@ -384,8 +384,11 @@ class Chordlet(object):
         style = self.s_priority[ max(self.s_priority.index(self.style),\
                                      self.s_priority.index(r.style)) ]
         c_len = min(len(self.chord), len(r.chord))
-        chord = [max(self.chord[-i-1],r.chord[-i-1]) for i in range(c_len)] + \
-                self.chord[:-c_len] + r.chord[:-c_len]
+        if c_len > 0:
+            chord = [max(self.chord[-i-1],r.chord[-i-1]) for i in range(c_len)] + \
+                    self.chord[:-c_len] + r.chord[:-c_len]
+        else:
+            chord = self.chord + r.chord
         chord.sort()
         join = Chordlet(style)
         join.chord = chord
