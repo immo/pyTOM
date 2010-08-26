@@ -27,6 +27,7 @@ def add_balloon_button(dic, name, parent, text, command, balloonmsg,side=LEFT):
     dic['balloon'].bind_widget(dic[name],balloonmsg=balloonmsg)
 
 def min_win_size(window,width,height):
+    window.update()
     w = max([width,window.winfo_width()])
     h = max([height,window.winfo_height()])
     window.wm_geometry("%ix%i"%(w,h))

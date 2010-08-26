@@ -77,6 +77,7 @@ class SongEditor(object):
         self.line_type = None
         self.table_data = {}
         self.table_scroll = {}
+        self.colon_depth = 0
         self.window.title(self.name)
         self.window.grid_columnconfigure(0,weight=1)
         self.window.grid_rowconfigure(0,weight=1)
@@ -95,7 +96,10 @@ class SongEditor(object):
                            colorigin=0,selectmode='browse',\
                            rowstretch='none',colstretch='all',\
                            variable=self.tvariable,drawmode='slow',\
-                           state='disabled',colwidth=30)
+                           state='disabled',colwidth=30,\
+                           font="courier 12",background="#222222",\
+                           foreground="yellow",\
+                           anchor=W)
         self.table.pack(side=LEFT,expand=1,fill='both')
         self.scrollbar = Scrollbar(self.tcontainer)
         self.scrollbar.pack(side=LEFT,fill=Y)
@@ -108,15 +112,39 @@ class SongEditor(object):
             s.table.yview_scroll(1,"unit")
         self.table.bind("<Button-4>",scroll_table_up)
         self.table.bind("<Button-5>",scroll_table_down)
+        self.table.tag_configure("heading",background="#000000",\
+                                 foreground="#FF00FF",font="courier 12 bold")
+        self.table.tag_cell("heading","-1,0")
 
         self.time_container = Frame(self.window)
         self.time_container.grid(row=1,column=0,sticky=W)
 
+        self.time_container2 = Frame(self.time_container)
+        self.time_container2.pack(side=RIGHT)
+
         self.table_row = None
 
-        self.time = Entry(self.time_container,width=8)
+        for i in range(1,5):
+            def set_offset_to(x=None,s=self,txt=str(i)):
+                s.time_offset.delete(0,END)
+                s.time_offset.insert(END,txt)
+            quicktix.add_balloon_button(self.__dict__,"btn_off"+str(i),\
+                                        "time_container2",str(i),\
+                                        set_offset_to,\
+                                        "Set += time offset entry to "+str(i))
+
+                                        
+        self.time_offset = Entry(self.time_container,width=4,justify=RIGHT)
+        self.time_offset.pack(side=RIGHT)
+        self.time_offset.insert(END,"4")
+        
+        self.tolabel = Label(self.time_container,text="+=")
+        self.tolabel.pack(side=RIGHT)
+
+        self.time = Entry(self.time_container,width=4,justify=RIGHT)
         self.time.pack(side=RIGHT)
         self.time.insert(END,"0")
+
 
         self.tlabel = Label(self.time_container,text="@")
         self.tlabel.pack(side=RIGHT)
@@ -160,18 +188,30 @@ class SongEditor(object):
         self.right_buttons.grid(row=1,column=1,sticky=E)
 
         def save_cmd(x=None,s=self):
-            pass
+            s.save_to()
         
         def upd_cmd(x=None,s=self):
             s.prepare_table_data()
             s.table_update()
 
+        def close_handler(x=None,s=self):
+            if s.to_string() != s.saved_data:
+                if yesnobox(self.name,"The song has been changed.",\
+                            "","Do you want to save it now?"):
+                    s.save_to()
+            s.window.destroy()
+
+        self.window.protocol("WM_DELETE_WINDOW",close_handler)
+        self.window.bind("<Control-s>",save_cmd)
+
 
         quicktix.add_balloon_button(self.__dict__,"btn_update","right_buttons",\
                                     "Update", upd_cmd,\
-                                "Update the table and the text colorization.")
+                                "Update the table and the text colorization. (F5)")
         quicktix.add_balloon_button(self.__dict__,"btn_save","right_buttons",\
                                     "Save", save_cmd,"Save the current file.",)
+
+        self.window.bind("<F5>",upd_cmd)        
 
         def tbl_update(x=None,s=self):
             s.text.subwidget("text").mark_set("insert",s.text.subwidget("text").index("@%i,%i"%(x.x,x.y)))
@@ -195,7 +235,14 @@ class SongEditor(object):
 
         self.text.subwidget("text").bind("<Button-1>",tbl_update)
         self.text.subwidget("text").bind("<Double-Button-1>",tbl_select_dbl)
-        self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)        
+        self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)
+
+        def refresh_table(x=None,s=self):
+            s.table_update()
+
+        for key in ["<Left>","<Right>","<Up>","<Down>","<Return>","<Prior>","<Next>"]:
+            self.text.subwidget("text").bind(key,refresh_table)
+
 
         def refocus_text(x=None,s=self):
             s.table_row = int(s.table.index("@%i,%i"%(x.x,x.y)).split(",")[0])
@@ -216,10 +263,10 @@ class SongEditor(object):
 
         self.colorize_text_widget()
         self.text.subwidget("text").focus_set()
+        quicktix.min_win_size(self.window,700,680)
         screencenter(self.window)
 
     def table_text(self):
-        print(self.table_row)
         if not self.line_type in self.table_data:
             return
         tbl = self.table_data[self.line_type]
@@ -230,9 +277,69 @@ class SongEditor(object):
             if self.line_type in ["rhythms","things"]:
                 before = data[:column]
                 after = data[column:]
-            elif self.line_type in ["initial"]:
+                first_on_line = False
+                following_stuff = False
+                if "=" in before:
+                    ttr = len(after)
+                    if ";" in after:
+                        ttr = after.index(";")
+                    else:
+                        if not before[before.index("=")+1:].strip():
+                            first_on_line = True
+                    insert = len(before) + ttr
+                else:
+                    first_on_line = True
+                    if "=" in after:
+                        ttr = after.index("=")
+                        if len(after) > ttr+1:
+                            if after[ttr+1].isspace():
+                                ttr += 1
+                    else:
+                        ttr = len(after)
+                    if after[ttr:].strip():
+                        following_stuff = True
+                    insert = len(before) + ttr+1
+                try:
+                    start_time = eval(self.time.get())
+                except:
+                    start_time = 0
+                if not first_on_line:
+                    txt = ";" + datum + "@" + str(start_time)
+                elif first_on_line:
+                    txt = datum + "@" + str(start_time)
+                    if following_stuff:
+                        txt += ";"
+                self.text.subwidget("text").insert("%i.%i"%(line,insert),txt)
+                self.text.subwidget("text").mark_set("insert","%i.%i"%(line,insert+len(txt)))
+                try:
+                    time_offset = eval(self.time_offset.get())
+                except:
+                    time_offset = 0
+                self.time.delete(0,END)
+
+                self.time.insert(END,str(start_time+time_offset))
+            elif self.line_type.startswith("initial"):
                 before = data[:column]
                 after = data[column:]
+                if "=" in before:
+                    ttr = len(after)
+                    if ")" in after:
+                        ttr = after.index(")")+1
+                    insert = len(before) + ttr
+                else:
+                    if "=" in after:
+                        ttr = after.index("=")
+                        if len(after) > ttr+1:
+                            if after[ttr+1].isspace():
+                                ttr += 1
+                    else:
+                        ttr = len(after)
+                    insert = len(before) + ttr + 1
+                txt = datum + "()"
+                self.text.subwidget("text").insert("%i.%i"%(line,insert),txt)
+                self.text.subwidget("text").mark_set("insert","%i.%i"%(line,insert+len(txt)-2))
+                
+
             elif "=" in data:
                 eqn = data.index("=")+1
                 self.text.subwidget("text").delete("%i.%i"%(line,eqn),"%i.%i"%(line,len(data)))
@@ -242,9 +349,24 @@ class SongEditor(object):
 
     def prepare_table_data(self):
         data = {}
-        data['bpm'] = "60,90,100,120,130,135,140,150,160,175,180,190,200,205,210,220,240,260".split(",")
+        data['bpm'] = "60,72,90,100,120,130,135,140,150,160,175,180,190,200,205,210,220,240,260".split(",")
         data['depth'] = "1,2,3,4,5,8,12,16".split(",")
-        data['length'] = "1,2,3,4,6,8,12,16".split(",")
+        data['length'] = "1,2,3,4,6,8,12,15,16,18,20,21,24,32".split(",")
+        if self.workspace != None:
+            data['things'] = self.workspace.get_things()
+            data['grammar'] = self.workspace.get_grammars()
+            data['rhythms'] = self.workspace.get_rhythms()
+        editor = self.text.subwidget("text").get("1.0",END)
+        part_names = filter(lambda x:x.startswith(":"), editor.split("\n"))
+        for pn in part_names:
+            idx = 0
+            while idx < len(pn) and pn[idx] == ":":
+                idx += 1
+            taxon = "initial level "+str(idx+1)
+            if not taxon in data:
+                data[taxon] = []
+            data[taxon].append(pn[idx:].strip())
+            
         self.table_data = data
 
     def table_update(self):
@@ -254,13 +376,28 @@ class SongEditor(object):
         for n,r in zip(self.names,self.regexps):
             if r.match(data):
                 new_type = n
+                break
+
+        allbefore = "\n"+self.text.subwidget("text").get("0.0","%i.end"%line)
+        if "\n:" in allbefore:
+            idx = allbefore.rindex("\n:") + 1
+            old = idx
+            while idx < len(allbefore) and allbefore[idx] == ":":
+                idx += 1
+            self.colon_depth = idx - old
+        else:
+            self.colon_depth = 0
+
+        if new_type == "initial":
+            new_type = "initial level "+str(self.colon_depth)
+
 
         self.table_scroll[self.line_type] = self.table.yview()[0]
         
         if new_type in self.table_data:
             new_data = self.table_data[new_type]
         else:
-            new_data = ["n/a"]
+            new_data = []
         self.tvariable.set("-1,0",new_type)            
         for i in range(len(new_data)):
             self.tvariable.set("%i,0"%i,new_data[i])
@@ -270,6 +407,7 @@ class SongEditor(object):
             self.table.yview_moveto(self.table_scroll[new_type])
         
         self.line_type = new_type
+            
 
 
     def select_current_fragment(self):
@@ -304,7 +442,7 @@ class SongEditor(object):
             else:
                 start = 0
             self.text.subwidget("text").tag_add(SEL,"%i.%i"%(line,start),"%i.%i"%(line,end))
-        elif self.line_type in ["initial"]:
+        elif self.line_type.startswith("initial"):
             ttr = len(after)
             if ")" in after:
                 ttr = after.index(")")+1
@@ -363,9 +501,27 @@ class SongEditor(object):
         self.text.subwidget("text").delete("1.0",END)
         self.text.subwidget("text").insert(END,s)
         self.colorize_text_widget()
+        self.prepare_table_data()
+
 
     def to_string(self):
         return self.text.subwidget("text").get("1.0",END)
+
+    def save_to(self):
+        i = inputbox(self.name,"Path =$"+self.path+"$")
+        if i:
+            self.save(i[0])
+
+    def save(self,new_path=None):
+        if new_path:
+            self.path = new_path
+            
+        s = self.to_string()
+        with open(self.path,'w') as f:
+            f.write(s)
+            
+        self.saved_data = s
+
 
     def colorize_text_widget(self):
         data = self.text.subwidget("text").get("1.0",END).split("\n")

@@ -88,6 +88,9 @@ class Workspace(object):
         self.window = Toplevel(parent_window)
         self.window.grid_rowconfigure(0,weight=1)
         self.window.grid_columnconfigure(0,weight=1)
+        self.things = []
+        self.grammars = []
+        self.rhythms_list = []
         self.name = 'Workspace'+' '+path
         self.path = path
         self.window.title(self.name)        
@@ -224,7 +227,7 @@ class Workspace(object):
             with open(path,'r') as f:
                 ed.from_string(f.read())
         elif editor == "song":
-            ed = song_editor.SongEditor(self.window,path)
+            ed = song_editor.SongEditor(self.window,path,self)
             with open(path,'r') as f:
                 ed.from_string(f.read())
         else:
@@ -265,6 +268,9 @@ class Workspace(object):
         new_files.sort()
         self.filenbrs = filter(lambda x: x in new_files,self.filenbrs) +\
                         filter(lambda x: not x in self.filenbrs,new_files)
+        self.things = []
+        self.grammars = []
+        self.rhythms_list = []
         for x in self.filenbrs:
             ftype = 'unknown'
             with open(x) as f:
@@ -280,9 +286,29 @@ class Workspace(object):
                 if data.startswith('Rhythm Desk'):
                     ftype = "rhythms"
                     finfo = ""
+                    rhythmbasename = os.path.basename(x)
+                    linewise = data.split("\n")[1:]
+                    linewise = map(lambda x:x.strip(),linewise)
+                    linewise = filter(lambda x:x,linewise) #kill empty lines
+                    i=0
+                    try:
+                        while i < len(linewise):
+                            if linewise[i] == "Named Rhythmlet":
+                                name = eval(linewise[i+1])
+                                self.rhythms_list.append(rhythmbasename + "/" + name)
+                                instkeys = eval(linewise[i+3])
+                                i += 3+len(instkeys)
+                            else:
+                                break
+                            i += 1
+                    except Exception,err:
+                        print("Error checking rhythm desk:",x)
+                        print("Reason:",err)
+
                 elif self.snippettest.match(data_inline):
                     ftype = 'snippet'
                     finfo = ""
+                    self.things.append(os.path.basename(x))
                 elif self.songtest.match(data_inline):
                     ftype = 'song'
                     taxamatch = self.taxafinder.search(data)
@@ -302,6 +328,7 @@ class Workspace(object):
                         finfo = ""
                 elif self.grammartest.search(data):
                     ftype = 'grammar'
+                    self.grammars.append(os.path.basename(x))
             self.filelist[x] = ftype
             self.fileinfo[x] = finfo
         self.table.config(rows=1+len(self.filenbrs))
@@ -328,3 +355,18 @@ class Workspace(object):
             self.table.tag_cell("tag-"+self.filelist[x],"%i,0"%i,"%i,1"%i,"%i,2"%i)
         self.table.tag_cell("hilit","%i,0"%self.selected_file,"%i,1"%self.selected_file,\
                             "%i,2"%self.selected_file)
+
+        self.things.sort()
+        self.grammars.sort()
+        self.rhythms_list.sort()
+
+    def get_things(self):
+        return self.things
+
+    def get_grammars(self):
+        return self.grammars
+
+    def get_rhythms(self):
+        return self.rhythms_list
+
+
