@@ -193,6 +193,8 @@ class SongEditor(object):
             s.save_to()
         
         def upd_cmd(x=None,s=self):
+            if s.workspace != None:
+                s.workspace.update_directory()
             s.prepare_table_data()
             s.table_update()
             s.colorize_text_widget()
