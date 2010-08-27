@@ -413,6 +413,12 @@ class Chordlet(object):
         self.chord = [x for x in chordarray if not x == None]
         self.chord.sort()
 
+    def update_from_frets(self):
+        tf = filter(lambda x:x[0]!=None,zip(self.frets,self.g_tuning))
+        self.chord = [sum(x) for x in tf]
+        self.chord.sort()
+
+
     def cmp(self,r):
         if r == None:
             return "|"
