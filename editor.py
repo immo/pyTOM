@@ -45,8 +45,8 @@ if __name__ == "__main__":
     root = Tk()
     root.withdraw()
     print("*let Editor")
-    open_sandbox()
+
     open_workspace()
-    root.wait_window(s.window)
+    root.wait_window(w.window)
 else:
     root = None

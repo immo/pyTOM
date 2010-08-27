@@ -74,7 +74,7 @@ class SongEditor(object):
         self.name = os.path.basename(path)+' Song Editor'
         self.path = path
         self.saved_data = ""
-        self.line_type = None
+        self.line_type = ""
         self.table_data = {}
         self.table_scroll = {}
         self.colon_depth = 0
@@ -86,7 +86,8 @@ class SongEditor(object):
         self.text.subwidget("text").configure(foreground="cyan",\
                                               background="#000000",\
                                               font="courier 12",\
-                                              insertbackground="#FFFFFF")
+                                              insertbackground="#FFFFFF",\
+                                              undo=1,autoseparators=1)
         self.balloon = Balloon(self.window)
         self.tcontainer = Frame(self.window)
         self.tcontainer.grid(row=0,column=1,sticky=N+S+E+W)
@@ -193,6 +194,7 @@ class SongEditor(object):
         def upd_cmd(x=None,s=self):
             s.prepare_table_data()
             s.table_update()
+            s.colorize_text_widget()
 
         def close_handler(x=None,s=self):
             if s.to_string() != s.saved_data:
@@ -204,6 +206,25 @@ class SongEditor(object):
         self.window.protocol("WM_DELETE_WINDOW",close_handler)
         self.window.bind("<Control-s>",save_cmd)
 
+        def undo_cmd(x=None,s=self):
+            s.text.subwidget("text").edit_undo()
+            s.colorize_text_widget()
+            s.table_update()
+
+        def redo_cmd(x=None,s=self):
+            s.text.subwidget("text").edit_redo()
+            s.colorize_text_widget()
+            s.table_update()
+
+        quicktix.add_balloon_button(self.__dict__,"btn_undo","right_buttons",\
+                                    "Undo", undo_cmd,\
+                                    "Undo the last edit action.")
+
+        quicktix.add_balloon_button(self.__dict__,"btn_redo","right_buttons",\
+                                    "Redo", redo_cmd,\
+                                    "Redo the last undone edit action.")
+
+
 
         quicktix.add_balloon_button(self.__dict__,"btn_update","right_buttons",\
                                     "Update", upd_cmd,\
@@ -211,18 +232,35 @@ class SongEditor(object):
         quicktix.add_balloon_button(self.__dict__,"btn_save","right_buttons",\
                                     "Save", save_cmd,"Save the current file.",)
 
-        self.window.bind("<F5>",upd_cmd)        
+        self.window.bind("<F5>",upd_cmd)
+
+        self.b1_start_position = END
 
         def tbl_update(x=None,s=self):
-            s.text.subwidget("text").mark_set("insert",s.text.subwidget("text").index("@%i,%i"%(x.x,x.y)))
+            idx = s.text.subwidget("text").index("@%i,%i"%(x.x,x.y))
+            s.text.subwidget("text").mark_set("insert",idx)
             ranges = s.text.subwidget("text").tag_ranges(SEL)
             if ranges:
                 start = s.text.subwidget("text").index(ranges[0])
                 end = s.text.subwidget("text").index(ranges[1])
                 s.text.subwidget("text").tag_remove(SEL,start,end)
-            
+            s.text.subwidget("text").tag_add(SEL,idx,idx)
+            s.b1_start_position = idx
             s.text.subwidget("text").focus_set()
             s.table_update()
+            return "break"
+
+        def tbl_drag(x=None,s=self):
+            idx = s.text.subwidget("text").index("@%i,%i"%(x.x,x.y))
+            s.text.subwidget("text").mark_set("insert",idx)
+            ranges = s.text.subwidget("text").tag_ranges(SEL)
+            print("ranges:",ranges)
+            if ranges:
+                start = s.text.subwidget("text").index(ranges[0])
+                end = s.text.subwidget("text").index(ranges[1])
+                s.text.subwidget("text").tag_remove(SEL,start,end)
+            s.text.subwidget("text").tag_add(SEL,s.b1_start_position,idx)
+            s.text.subwidget("text").tag_add(SEL,idx,s.b1_start_position)           
             return "break"
 
         def tbl_select_dbl(x=None,s=self):
@@ -236,6 +274,7 @@ class SongEditor(object):
         self.text.subwidget("text").bind("<Button-1>",tbl_update)
         self.text.subwidget("text").bind("<Double-Button-1>",tbl_select_dbl)
         self.text.subwidget("text").bind("<Triple-Button-1>",tbl_select_trp)
+        self.text.subwidget("text").bind("<B1-Motion>",tbl_drag)
 
         def refresh_table(x=None,s=self):
             s.table_update()
@@ -256,7 +295,8 @@ class SongEditor(object):
         self.table.bind("<Double-Button-1>",refocus_text)
         self.table.bind("<Triple-Button-1>",refocus_text)
 
-        self.table.bind("<Double-Button-1>",insert_text)        
+        self.table.bind("<Double-Button-1>",insert_text)
+        self.table.bind("<Triple-Button-1>",insert_text)                
 
         self.prepare_table_data()
 
@@ -497,9 +537,14 @@ class SongEditor(object):
 
 
     def from_string(self,s):
-        self.saved_data = s
         self.text.subwidget("text").delete("1.0",END)
-        self.text.subwidget("text").insert(END,s)
+        if s.endswith("\n"):
+            self.text.subwidget("text").insert(END,s[:-1])
+            self.saved_data = s                        
+        else:
+            self.text.subwidget("text").insert(END,s)
+            self.saved_data = s+"\n"
+
         self.colorize_text_widget()
         self.prepare_table_data()
 
