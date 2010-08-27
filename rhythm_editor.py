@@ -395,7 +395,6 @@ class RhythmEditor(object):
         data = filter(lambda x:x,data) # kill empty lines!
         i = 0
         self.rhythmletstack = []
-        self.last_save_string = s
         while i < len(data):
             if data[i] == "Named Rhythmlet":
                 name = eval(data[i+1])
@@ -414,6 +413,9 @@ class RhythmEditor(object):
                 raise Exception("RhythmEditor: cannot recognize: ",data[i])
             i += 1
         self.fill_table()
+        self.last_save_string = self.to_string()
+        # some tuples may change to lists and vice versa so we set to current
+        # to_string() value instead of s.
 
     def save_to(self,new_path=None):
         if new_path:

@@ -233,6 +233,11 @@ class Workspace(object):
         else:
             call_editor(path)
 
+    def edit_file_by_end(self,path_end):
+        candidates = filter(lambda x:x.endswith(path_end), self.filelist)
+        if candidates:
+            self.edit_file(candidates[0])
+
     def copy_file(self,path):
         i = inputbox(self.name,"Copy file "+path,"","Dest = $"+path+"-$")
         if i:

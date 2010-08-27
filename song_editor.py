@@ -76,6 +76,7 @@ class SongEditor(object):
         self.saved_data = ""
         self.line_type = ""
         self.table_data = {}
+        self.current_table_data = []
         self.table_scroll = {}
         self.colon_depth = 0
         self.window.title(self.name)
@@ -291,12 +292,17 @@ class SongEditor(object):
             s.table_row = int(s.table.index("@%i,%i"%(x.x,x.y)).split(",")[0])
             s.table_text()
 
+        def open_in_editor(x=None,s=self):
+            s.table_row = int(s.table.index("@%i,%i"%(x.x,x.y)).split(",")[0])
+            s.do_edit(s.table_row)
+
         self.table.bind("<Button-1>",refocus_text)
         self.table.bind("<Double-Button-1>",refocus_text)
         self.table.bind("<Triple-Button-1>",refocus_text)
 
         self.table.bind("<Double-Button-1>",insert_text)
-        self.table.bind("<Triple-Button-1>",insert_text)                
+        self.table.bind("<Triple-Button-1>",insert_text)
+        self.table.bind("<Double-Button-3>",open_in_editor)
 
         self.prepare_table_data()
 
@@ -442,6 +448,7 @@ class SongEditor(object):
         for i in range(len(new_data)):
             self.tvariable.set("%i,0"%i,new_data[i])
         self.table.configure(rows=len(new_data)+1)
+        self.current_table_data = new_data
 
         if new_type in self.table_scroll:
             self.table.yview_moveto(self.table_scroll[new_type])
@@ -581,6 +588,16 @@ class SongEditor(object):
                     self.text.subwidget("text").tag_add("colorize%i"%i,"%i.0"%line,\
                                                         "%i.0"%(line+1))
                     break
+
+    def do_edit(self,row):
+        if 0 <= row < len(self.current_table_data) and\
+               self.workspace != None:
+            entry = self.current_table_data[row]
+            if self.line_type in ["things","grammar"]:
+                self.workspace.edit_file_by_end(entry)
+            elif self.line_type == "rhythms":
+                if "/" in entry:
+                    self.workspace.edit_file_by_end(entry[:entry.index("/")])
 
 if __name__ == "__main__":
     root = Tk()
