@@ -115,20 +115,34 @@ class ChordletEditor(object):
         if self.chordlet.style:
             self.stylevar.set(self.chordlet.style)
 
+        def do_update(x=None,s=self):
+            s.update_table()
+
         clm = 0
         for n,v in [("palm mute","."),("legato","l"),\
                     ("normal"," "),("squeal","s")]:
             rbtn = Radiobutton(self.window,text=n,value=v,\
-                               variable = self.stylevar)
+                               variable = self.stylevar,\
+                               command = do_update)
             rbtn.grid(row=1,column=clm)
             clm += 1
+
 
         def done(x=None,s=self):
             s.window.destroy()
 
         self.copy_entry = Entry(self.window)
         self.copy_entry.grid(row=2,column=0,columnspan=3,sticky=E+W+N)
-        
+
+        def to_clipboard(x=None,s=self):
+            data = s.copy_entry.get()+"\n"
+            os.popen('xclip','wb').write(data)
+
+        self.copy_btn = Button(self.window,text="→ clipboard",\
+                               command=to_clipboard)
+
+        self.copy_btn.grid(row=2,column=3,sticky=E+W)
+
 
         self.window.bind("<Return>",done)
         self.window.bind("<Escape>",done)

@@ -257,7 +257,7 @@ class SongEditor(object):
             idx = s.text.subwidget("text").index("@%i,%i"%(x.x,x.y))
             s.text.subwidget("text").mark_set("insert",idx)
             ranges = s.text.subwidget("text").tag_ranges(SEL)
-            print("ranges:",ranges)
+
             if ranges:
                 start = s.text.subwidget("text").index(ranges[0])
                 end = s.text.subwidget("text").index(ranges[1])
