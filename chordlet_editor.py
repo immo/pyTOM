@@ -36,17 +36,39 @@ class ChordletEditor(object):
         self.parent = parent
 
     def update_table(self):
+        filterfn = lambda x:False
+        try:
+            code = "lambda x: "+self.fret_filter.get()
+            fn = eval(code)
+            filterfn = fn
+        except:
+            pass
+            
         self.chordlet.style = self.stylevar.get().strip()        
         self.table.tag_delete("fingers")
+        self.table.tag_delete("goodfret")
+        self.table.tag_configure("goodfret",foreground="white",background="#333333")
+        self.table.tag_raise("goodfret")
+        self.table.tag_configure("goodfretfingers",foreground="#FF3333",background="#333333")
+        self.table.tag_raise("goodfretfingers")
         self.table.tag_configure("fingers",foreground="red")
         self.table.tag_raise("fingers")
         for i in range(self.nfrets):
             for j in range(25):
+                if filterfn(self.chordlet.g_tuning[self.nfrets-i-1]+j):
+                    good = True
+                    self.table.tag_cell("goodfret","%i,%i"%(i,j))
+                else:
+                    good = False
+                
                 if self.chordlet.frets[self.nfrets-i-1] == j:
                     self.tvariable.set("%i,%i"%(i,j),\
                                        name_pitch(self.chordlet.g_tuning\
                                                   [self.nfrets-i-1]+j))
-                    self.table.tag_cell("fingers","%i,%i"%(i,j))
+                    if good:
+                        self.table.tag_cell("goodfretfingers","%i,%i"%(i,j))                        
+                    else:
+                        self.table.tag_cell("fingers","%i,%i"%(i,j))
                 else:
                     self.tvariable.set("%i,%i"%(i,j),"—")
 
@@ -91,6 +113,10 @@ class ChordletEditor(object):
         for i in range(25):
             self.table.tag_cell("heading","-1,%i"%i)
 
+        self.fret_filter = Entry(self.window)
+        self.fret_filter.grid(row=3,column=0,columnspan=4,sticky=E+W+N)
+        self.fret_filter.insert(END,"(x+4)%12 in [0,2,4,5,7,9,11]")
+
         self.chordlet = input
 
         def left_click(x,s=self):
@@ -127,6 +153,7 @@ class ChordletEditor(object):
             rbtn.grid(row=1,column=clm)
             clm += 1
 
+        self.window.bind("<F5>",do_update)
 
         def done(x=None,s=self):
             s.window.destroy()
