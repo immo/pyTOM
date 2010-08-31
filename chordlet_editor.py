@@ -80,6 +80,7 @@ class ChordletEditor(object):
         txt = "          ; " + " ".join(map(str2,self.chordlet.frets))
         txt += " "*(12+3*7+3-len(txt)) + self.chordlet.style
         txt += " "*(12+3*7+5-len(txt))
+        txt += self.additional_stuff.get()
         
         self.copy_entry.delete(0,END)
         self.copy_entry.insert(END,txt)
@@ -114,8 +115,11 @@ class ChordletEditor(object):
             self.table.tag_cell("heading","-1,%i"%i)
 
         self.fret_filter = Entry(self.window)
-        self.fret_filter.grid(row=3,column=0,columnspan=4,sticky=E+W+N)
+        self.fret_filter.grid(row=3,column=0,columnspan=3,sticky=E+W+N)
         self.fret_filter.insert(END,"(x+4)%12 in [0,2,4,5,7,9,11]")
+
+        self.additional_stuff = Entry(self.window)
+        self.additional_stuff.grid(row=3,column=3,sticke=E+W)
 
         self.chordlet = input
 
