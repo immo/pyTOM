@@ -119,7 +119,7 @@ class ChordletEditor(object):
         self.fret_filter.insert(END,"(x+4)%12 in [0,2,4,5,7,9,11]")
 
         self.additional_stuff = Entry(self.window)
-        self.additional_stuff.grid(row=3,column=3,sticke=E+W)
+        self.additional_stuff.grid(row=3,column=3,sticky=E+W)
 
         self.chordlet = input
 
