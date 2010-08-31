@@ -80,12 +80,17 @@ class ChordletEditor(object):
         txt = "          ; " + " ".join(map(str2,self.chordlet.frets))
         txt += " "*(12+3*7+3-len(txt)) + self.chordlet.style
         txt += " "*(12+3*7+5-len(txt))
+        if self.frets_hint_var.get():
+            txt += "+ "
+        else:
+            txt += "  "
         txt += self.additional_stuff.get()
         
         self.copy_entry.delete(0,END)
         self.copy_entry.insert(END,txt)
 
     def edit_chordlet(self,input,name=None):
+        self.clipstring = ""
         self.window = Toplevel(self.parent)
         if name:
             self.window.title(name+" - Edit Chordlet")
@@ -115,11 +120,11 @@ class ChordletEditor(object):
             self.table.tag_cell("heading","-1,%i"%i)
 
         self.fret_filter = Entry(self.window)
-        self.fret_filter.grid(row=3,column=0,columnspan=3,sticky=E+W+N)
+        self.fret_filter.grid(row=5,column=0,columnspan=3,sticky=E+W+N)
         self.fret_filter.insert(END,"(x+4)%12 in [0,2,4,5,7,9,11]")
 
         self.additional_stuff = Entry(self.window)
-        self.additional_stuff.grid(row=3,column=3,sticky=E+W)
+        self.additional_stuff.grid(row=4,column=0,columnspan=4,sticky=E+W)
 
         self.chordlet = input
 
@@ -163,17 +168,49 @@ class ChordletEditor(object):
             s.window.destroy()
 
         self.copy_entry = Entry(self.window)
-        self.copy_entry.grid(row=2,column=0,columnspan=3,sticky=E+W+N)
+        self.copy_entry.grid(row=3,column=0,columnspan=2,sticky=E+W+N)
 
         def to_clipboard(x=None,s=self):
+            s.update_table()
             data = s.copy_entry.get()+"\n"
+            s.clipstring = data            
             os.popen('xclip','wb').write(data)
+
+        def add_clipboard(x=None,s=self):
+            s.update_table()
+            data = s.clipstring
+            data += s.copy_entry.get()+"\n"
+            s.clipstring = data
+            os.popen('xclip','wb').write(data)
+
+        self.table.bind("<Button-2>",add_clipboard)
 
         self.copy_btn = Button(self.window,text="→ clipboard",\
                                command=to_clipboard)
 
-        self.copy_btn.grid(row=2,column=3,sticky=E+W)
+        self.copy_btn.grid(row=3,column=3,sticky=E+W)
+        
+        self.copy_btn2 = Button(self.window,text="+ clipboard",\
+                                command=add_clipboard)
+        self.copy_btn2.grid(row=3,column=2,sticky=E+W)
 
+        self.frets_hint_var = IntVar()
+        self.frets_btn = Checkbutton(self.window,text="add fret hint",\
+                                     variable=self.frets_hint_var,\
+                                     command=do_update)
+        self.frets_btn.grid(row=2,column=3,sticky=E+W)
+
+        self.quick_time_btns = Frame(self.window)
+        self.quick_time_btns.grid(row=2,column=0,columnspan=3,sticky=E+W+N)
+
+        for x in ["1.","1","2.","2","4.","4","8.","8","16.","16","32.","32"]:
+            def btn_cmd(x=None,s=self,t=x):
+                s.additional_stuff.delete(0,END)
+                s.additional_stuff.insert(END,"#"+t)
+                s.update_table()
+            btn = Button(self.quick_time_btns,text=x,command=btn_cmd)
+            btn.pack(side=LEFT)
+            
 
         self.window.bind("<Return>",done)
         self.window.bind("<Escape>",done)
