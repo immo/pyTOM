@@ -25,8 +25,7 @@ from fractions import *
 from messagebox import *
 from rhythmlet_editor import *
 from scrolldummy import *
-import quicktix,os
-import utils
+import quicktix,os,copy,utils
 
 class RhythmEditor(object):
     def __init__(self,parent=None,save_path=None):
@@ -84,6 +83,22 @@ class RhythmEditor(object):
                 s.second_op = idx
                 s.hilight_second_op()
 
+        def copy_by_mouse(event,s=self):
+            row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
+            row = int(row)
+            if 0 <= row <= len(s.rhythmletstack):
+                ob = s.rhythmletstack[row]
+                new_name = ob[0] + "'"
+                idx = s.add_rhythmlet_var(new_name,copy.deepcopy(ob[1].____ref))
+
+        def copy_by_btn(event=None,s=self):
+            row,col = s.table.index("active").split(",")
+            row = int(row)
+            if 0 <= row <= len(s.rhythmletstack):
+                ob = s.rhythmletstack[row]
+                new_name = ob[0] + "'"
+                idx = s.add_rhythmlet_var(new_name,copy.deepcopy(ob[1].____ref))
+
         def calculate_join(event,s=self):
             row,col = s.table.index("@%i,%i"%(event.x,event.y)).split(",")
             row = int(row)            
@@ -122,6 +137,9 @@ class RhythmEditor(object):
         quicktix.add_balloon_button(self.__dict__,'ren_btn','r_buttons','Rename',\
                                     rename_rhythmlet,\
                                     'Rename the currently selected rhythmlet.')
+        quicktix.add_balloon_button(self.__dict__,'cpy_btn','r_buttons','Copy',\
+                                    copy_by_btn,\
+                                    'Create a copy of the currently selected rhythmlet')
         quicktix.add_balloon_button(self.__dict__,'del_btn','r_buttons','Delete',\
                                     del_rhythmlet,\
                                     'Deletes the currently selected rhythmlet. (Del)')
@@ -152,7 +170,8 @@ class RhythmEditor(object):
         self.window.bind("<Delete>",del_rhythmlet)        
         self.table.bind("<Shift-Button-3>",mouse_rename_rhythmlet)
         self.table.bind("<Button-3>",choose_second_op)
-        self.table.bind("<Button-2>",pick_to_canvas)        
+        self.table.bind("<Button-2>",pick_to_canvas)
+        self.table.bind("<Control-Button-2>", copy_by_mouse)
         self.table.bind("<Control-Button-1>",calculate_meet)
         self.table.bind("<Shift-Button-1>",calculate_join)                        
         self.fill_table()

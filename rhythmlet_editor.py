@@ -185,6 +185,10 @@ class RhythmletEditor(object):
             s.add_fraction_time_grid(Fraction(1,2))
         def command_4(x=None,s=self):
             s.add_fraction_time_grid(Fraction(1,4))
+        def command_8(x=None,s=self):
+            s.add_fraction_time_grid(Fraction(1,8))
+        def command_12(x=None,s=self):
+            s.add_fraction_time_grid(Fraction(1,12))
         def command_2_3(x=None,s=self):
             s.add_fraction_time_grid(Fraction(2,3))
         def command_3(x=None,s=self):
@@ -200,6 +204,9 @@ class RhythmletEditor(object):
         self.btn_4 = Button(self.buttons,text="1/16",command=command_4)
         self.btn_4.pack(side=LEFT)
         self.balloon.bind_widget(self.btn_4,balloonmsg="Add regular time grid.")
+        self.btn_8 = Button(self.buttons,text="1/32",command=command_8)
+        self.btn_8.pack(side=LEFT)
+        self.balloon.bind_widget(self.btn_8,balloonmsg="Add regular time grid.")
         self.btn_2_3 = Button(self.buttons,text="1/4 3let",command=command_2_3)
         self.btn_2_3.pack(side=LEFT)
         self.balloon.bind_widget(self.btn_2_3,balloonmsg="Add regular time grid.")
@@ -209,6 +216,9 @@ class RhythmletEditor(object):
         self.btn_6 = Button(self.buttons,text="1/16 3let",command=command_6)
         self.btn_6.pack(side=LEFT)
         self.balloon.bind_widget(self.btn_6,balloonmsg="Add regular time grid.")
+        self.btn_12 = Button(self.buttons,text="1/32 3let",command=command_12)
+        self.btn_12.pack(side=LEFT)
+        self.balloon.bind_widget(self.btn_12,balloonmsg="Add regular time grid.")
         
         self.add_btn = Button(self.buttons,text="Add time grid",command=add_command)
         self.add_btn.pack(side=LEFT)

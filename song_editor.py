@@ -78,6 +78,7 @@ class SongEditor(object):
         self.table_data = {}
         self.current_table_data = []
         self.table_scroll = {}
+        self.table_colwidth = 36
         self.colon_depth = 0
         self.window.title(self.name)
         self.window.grid_columnconfigure(0,weight=1)
@@ -98,7 +99,7 @@ class SongEditor(object):
                            colorigin=0,selectmode='browse',\
                            rowstretch='none',colstretch='all',\
                            variable=self.tvariable,drawmode='slow',\
-                           state='disabled',colwidth=30,\
+                           state='disabled',colwidth=self.table_colwidth,\
                            font="courier 12",background="#222222",\
                            foreground="yellow",\
                            anchor=W)
@@ -448,8 +449,12 @@ class SongEditor(object):
             new_data = []
         self.tvariable.set("-1,0",new_type)            
         for i in range(len(new_data)):
-            self.tvariable.set("%i,0"%i,new_data[i])
-        self.table.configure(rows=len(new_data)+1)
+            display_text = new_data[i]
+            if len(display_text) > self.table_colwidth:
+                display_text = "..."+display_text[-self.table_colwidth+3:]
+            self.tvariable.set("%i,0"%i,display_text)
+        self.table.configure(rows=len(new_data)+1,\
+                             colwidth=self.table_colwidth)
         self.current_table_data = new_data
 
         if new_type in self.table_scroll:
