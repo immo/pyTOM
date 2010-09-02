@@ -26,7 +26,7 @@ from df_global import *
 from df_limbs import *
 from df_xml_thing import *
 import tkMessageBox
-from math import floor, cos, pi
+from math import floor, cos, pi, log
 from df_property_dialog import *
 from df_presets import get_preset_fn_list, call_preset_fn
 from df_functions import *
@@ -102,7 +102,9 @@ def set_default_snippets(g=DfGlobal()):
                  get_preset_snippet(),\
                  get_hit_star_snippet(),\
                  get_alternate_hit_star_snippet(),\
-                 get_restore_instrument_snippet()]
+                 get_restore_instrument_snippet(),\
+                 get_warp_snippet(),\
+                 get_punch_snippet()]
 
     print "...registering snippets: ",
 
@@ -2838,3 +2840,637 @@ def get_restore_instrument_snippet():
                'name':'restore-instrument'})
 
     return snippet
+
+
+
+
+#
+#
+# ##       ##   ######   #######   #######
+# ##       ##  ##    ##  ##    ##  ##    ##
+# ##   #   ##  ##    ##  ##    ##  ##    ##
+# ##  ###  ##  ########  ######    #######
+# ## ## ## ##  ##    ##  ##   ##   ##
+#  ###   ###   ##    ##  ##    ##  ##
+#
+
+def get_warp_snippet():
+    """returns a warp snippet"""
+    snippet = {}
+
+    def apply(thing,concept,tzero,snippet=snippet):
+        limb = thing['limb']        
+        start = tzero + thing['t']
+        end = start + thing['span']
+        old_strength = concept.strength_funs[limb]
+        old_potential = concept.potential_funs[limb]        
+        midpoint = thing['gap']*thing['span'] + start
+        curvature = thing['level']
+        gaplen = thing['gap']*thing['span']
+        halfspan = thing['span']*0.5
+        def new_strength(t,t0=start,t1=midpoint,t2=end,\
+                         c=curvature,tm=halfspan,\
+                         fn = old_strength,glen=gaplen,\
+                         glen2=thing['span']-gaplen):
+            if t < t0:
+                return fn(t)
+            if t < t1:
+                return fn(t0 + (((t-t0)/glen)**c)*tm)
+            if t < t2:
+                return fn(t1 - (((t1-t)/glen2)**c)*tm)
+            return fn(t)
+
+        def new_potential(t,t0=start,t1=midpoint,t2=end,\
+                         c=curvature,tm=halfspan,\
+                         fn = old_potential,glen=gaplen,\
+                         glen2=thing['span']-gaplen):
+            if t < t0:
+                return fn(t)
+            if t < t1:
+                return fn(t0 + (((t-t0)/glen)**c)*tm)
+            if t < t2:
+                return fn(t1 - (((t1-t)/glen2)**c)*tm)
+            return fn(t)
+
+                
+        concept.strength_funs[limb] = new_strength
+        concept.potential_funs[limb] = new_potential
+
+    def make_marks(dic,thing,snippet=snippet):
+        canvas = dic['canvas']
+        for old_marks in thing['*marks']:
+            canvas.delete(old_marks)
+        marks = []
+        for i in [thing['gap']*thing['span']]:
+            x = (i+thing['t'])*float(dic['width']) / float(dic['length'])
+            line = canvas.create_line(x,thing['y-min'],x,thing['y-max']+20,\
+                                      fill="#0000CC")
+            canvas.tag_lower(line)
+            marks.append(line)
+
+        level0_x = (thing['t']+thing['gap']*thing['span'])*float(dic['width'])\
+                /float(dic['length'])
+
+        gap_x = thing['t']*float(dic['width'])/float(dic['length']) 
+
+        level0_text = canvas.create_text(level0_x,thing['y']-20,fill="yellow",\
+                                      anchor=N,text= "%.2f"%thing['level'])
+
+        gap_text = canvas.create_text(gap_x,thing['y']-15,fill="blue",\
+                                      anchor=N,text= "%.2f"%thing['gap'])
+
+        marks.append(level0_text)
+        marks.append(gap_text)
+        
+        thing['*marks'] = marks
+        canvas.tag_lower(dic['canvas_bg'])
+
+    def update_span(dic,thing):
+        w = int(thing['span']/float(dic['length'])*float(dic['width']))
+        if w < 50:
+            w = 50
+        canvas = dic['canvas']
+        for obj in thing['*objects']:
+            coords = canvas.coords(obj)
+            if len(coords)==4:
+                coords[2] = coords[0] + w
+                canvas.coords(obj,*coords)
+        make_marks(dic,thing)
+
+   
+
+    def property(dic,thing,snippet=snippet):
+        repeat_str = str(thing['repeat'])
+        values = {'span':str(thing['span']),\
+                  't':str(thing['t']),
+                  'repeat':repeat_str,\
+                  'scale':str(thing['scale']),\
+                  'level':str(thing['level']),\
+                  'gap':str(thing['gap'])}
+        property_dialog([("t = ","t"),\
+                         ("span = ","span"),\
+                         ("new-middle-position = ","gap"),\
+                         ("curvature factor = ","level")],\
+                        values=values,parent=dic['window'])
+        try:
+            thing['level'] = float(values['level'])
+        except:
+            pass
+        try:
+            thing['gap'] = float(values['gap'])
+        except:
+            pass
+        if values['span'] != str(thing['span']):
+            try:
+                new_span = float(values['span'])
+            except:
+                pass
+            else:
+                thing['span'] = new_span
+                thing['repeat'] = thing['span']\
+                                  /(float(snippet['length'])*thing['scale'])
+                update_span(dic,thing)
+        if values['scale'] != str(thing['scale']):
+            try:
+                new_scale = float(values['scale'])
+            except:
+                pass
+            else:
+                thing['scale'] = new_scale
+                thing['repeat'] = thing['span']\
+                                  /(float(snippet['length'])*thing['scale'])
+                update_span(dic,thing)
+        if values['repeat'] != repeat_str:
+            try:
+                new_repeat = float(values['repeat'])
+            except:
+                pass
+            else:
+                thing['repeat'] = new_repeat
+                thing['span'] = float(thing['scale'])*float(snippet['length'])\
+                                *thing['repeat']
+                update_span(dic,thing)
+        if values['t'] != str(thing['t']):
+            try:
+                new_t = float(values['t'])
+            except:
+                pass
+            else:
+                thing['t'] = new_t
+                x = float(dic['width'])*new_t/float(dic['length'])
+                delta_x = x-thing['x']
+                thing['x'] = x
+                canvas = dic['canvas']
+                for obj in thing['*objects']:
+                    xys = canvas.coords(obj)
+                    for i in range(len(xys)):
+                        if not i%2:
+                            xys[i] += delta_x
+                    canvas.coords(obj,*xys)
+        make_marks(dic,thing)
+        
+
+    def set_delta(event, thing,snippet=snippet):
+        thing['old-x'] = event.x
+        thing['old-y'] = event.y
+        thing['old-level'] = thing['level']
+        thing['old-gap'] = thing['gap']
+
+       
+
+    def drag(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']
+        x = thing['x']+delta_x
+        y = thing['y']+delta_y
+        if y < thing['y-min']:
+            y = thing['y-min']
+        elif y > thing['y-max']:
+            y = thing['y-max']
+        delta_x = x-thing['x']
+        delta_y = y-thing['y']
+        t = float(x)*float(dic['length'])/float(dic['width'])
+        dic_extend(thing,{'x':x,'y':y,'t':t})
+        canvas = dic['canvas']
+        for obj in thing['*objects']:
+            xys = canvas.coords(obj)
+            for i in range(len(xys)):
+                if i%2:
+                    xys[i] += delta_y
+                else:
+                    xys[i] += delta_x
+            canvas.coords(obj,*xys)
+        make_marks(dic,thing)
+
+
+    def scale(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']
+        delta_t = float(delta_x)/float(dic['width'])*float(dic['length'])   
+        thing['gap'] = thing['old-gap'] + delta_t/thing['span']
+        thing['scale'] = thing['span']/(snippet['length']*thing['repeat'])
+        update_span(dic,thing)
+        
+
+    def span(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']        
+        delta_t = float(delta_x)/float(dic['width'])*float(dic['length'])
+        thing['span'] += delta_t
+        thing['level'] = thing['old-level'] - float(delta_y)/100.0        
+        thing['repeat'] = thing['span']/(snippet['length']*thing['scale'])
+        update_span(dic,thing)
+
+    def restore(dic,thing,snippet=snippet):
+        limb = thing['limb']
+        t = thing['t']
+        x = int(float(t)*float(dic['width'])/float(dic['length']))
+        thing['x'] = x
+        y = thing['y']
+        
+        y_min = dic['y_minmargins'][limb]
+        y_max = dic['y_margins'][limb]
+        
+        thing['y-min'] = y_min
+        thing['y-max'] = y_max-21
+
+        canvas = dic['canvas']
+        
+
+        w = int(thing['span']/float(dic['length'])*float(dic['width']))
+        if w < 50:
+            w = 50
+
+        box = canvas.create_rectangle(x,y,x+w,y+20,fill="#666600",outline="yellow")
+        text = canvas.create_text(x+2,y+2,text=snippet['name'],fill="yellow",\
+                                  anchor=NW)
+        
+        objects = [box, text]
+
+        thing['*objects'] = objects
+
+        menu = Menu(dic['window'],tearoff=0)
+
+        def properties(thing=thing,dic=dic,snippet=snippet):
+            snippet['property'](dic,thing)
+
+        def removeThing(thing=thing,dic=dic):
+            canvas = dic['canvas']
+            for o in thing['*objects']:
+                canvas.delete(o)
+            for m in thing['*marks']:
+                canvas.delete(m)
+            dic['things'].remove(thing)
+
+        menu.add_command(label="Copy",\
+                         command=lambda t=thing:copy_thing_to_global(t))
+        menu.add_command(label="Properties",command=properties)
+        menu.add_command(label="Remove",command=removeThing)
+        menu.add_separator()
+        menu.add_command(label=snippet['name'])
+        
+        thing['*menu'] = menu
+        
+        bind_canvas_objects_to_snippet(dic,canvas,objects,snippet,thing,\
+                                       properties)
+
+        thing['*marks'] = []
+        make_marks(dic,thing)
+        
+
+
+    def create(dic,t,limb,snippet=snippet):
+        x = dic['x']
+        y = dic['y']
+        
+        thing = {'type':'snippet',\
+                 'name':snippet['name'],\
+                 'limb':limb,\
+                 'scale':1.0,\
+                 'repeat':snippet['initial-length']/snippet['length'],\
+                 'span':snippet['initial-length'],\
+                 'level':snippet['initial-level'],\
+                 'gap':snippet['initial-gap'],\
+                 't':t,\
+                 'x':x,\
+                 'y':y}
+
+        restore(dic,thing)
+
+        return thing
+
+    dic_extend(snippet,{'apply':apply,\
+               'property':property,\
+               'set-delta':set_delta,\
+               'drag':drag,\
+               'scale':scale,\
+               'span':span,\
+               'create':create,\
+               'restore':restore,\
+               'priority':10,\
+               'length':1.0,\
+               'initial-level':1.7,\
+               'initial-gap':0.6,\
+               'initial-length':1.0,\
+               'name':'warp'})
+
+    return snippet
+
+
+#
+#
+#   #######  ##  ## ##   ##  ##### ##  ##
+#   ##    ## ##  ## ###  ## ##     ##  ##
+#   ##    ## ##  ## ## # ## ##     ######
+#   #######  ##  ## ##  ### ##     ##  ##
+#   ##       ##  ## ##   ## ##     ##  ##
+#   ##        ####  ##   ##  ##### ##  ##
+#
+
+def get_punch_snippet():
+    """returns a punching snippet"""
+    snippet = {}
+
+    def apply(thing,concept,tzero,snippet=snippet):
+        limb = thing['limb']        
+        start = tzero + thing['t']
+        end = start + thing['span']
+        old_strength = concept.strength_funs[limb]
+        old_potential = concept.potential_funs[limb]        
+        gaplen = thing['gap']*thing['span']
+        curvature = thing['level']
+        gaplen = thing['gap']*thing['span']
+        d = thing['span']-gaplen
+        s = thing['span']
+        alpha = -(curvature - 1.0)/(2.0*d)
+        gamma = s / (-alpha*d*d + d)
+        
+        def new_strength(t,fn = old_strength,t0=start,\
+                         t1=start+gaplen,\
+                         t2=start+thing['span'],\
+                         alpha=alpha,gamma=gamma):
+            if t < t0:
+                return fn(t)
+            if t < t1:
+                return fn(t0)
+            if t < t2:
+                x = t-t2
+                return fn(t2 + gamma*(alpha*x*x+x))
+            return fn(t)
+
+        def new_potential(t,fn = old_potential,t0=start,\
+                         t1=start+gaplen,\
+                         t2=start+thing['span'],\
+                         alpha=alpha,gamma=gamma):
+            if t < t0:
+                return fn(t)
+            if t < t1:
+                return fn(t0)
+            if t < t2:
+                x = t-t2
+                return fn(t2 + gamma*(alpha*x*x+x))
+            return fn(t)
+               
+        concept.strength_funs[limb] = new_strength
+        concept.potential_funs[limb] = new_potential
+
+    def make_marks(dic,thing,snippet=snippet):
+        canvas = dic['canvas']
+        for old_marks in thing['*marks']:
+            canvas.delete(old_marks)
+        marks = []
+        for i in [thing['gap']*thing['span']]:
+            x = (i+thing['t'])*float(dic['width']) / float(dic['length'])
+            line = canvas.create_line(x,thing['y-min'],x,thing['y-max']+20,\
+                                      fill="#0000CC")
+            canvas.tag_lower(line)
+            marks.append(line)
+
+        level0_x = (thing['t']+thing['gap']*thing['span'])*float(dic['width'])\
+                /float(dic['length'])
+
+        gap_x = thing['t']*float(dic['width'])/float(dic['length']) 
+
+        level0_text = canvas.create_text(level0_x,thing['y']-20,fill="yellow",\
+                                      anchor=N,text= "%.2f"%thing['level'])
+
+        gap_text = canvas.create_text(gap_x,thing['y']-15,fill="blue",\
+                                      anchor=N,text= "%.2f"%thing['gap'])
+
+        marks.append(level0_text)
+        marks.append(gap_text)
+        
+        thing['*marks'] = marks
+        canvas.tag_lower(dic['canvas_bg'])
+
+    def update_span(dic,thing):
+        w = int(thing['span']/float(dic['length'])*float(dic['width']))
+        if w < 50:
+            w = 50
+        canvas = dic['canvas']
+        for obj in thing['*objects']:
+            coords = canvas.coords(obj)
+            if len(coords)==4:
+                coords[2] = coords[0] + w
+                canvas.coords(obj,*coords)
+        make_marks(dic,thing)
+
+   
+
+    def property(dic,thing,snippet=snippet):
+        repeat_str = str(thing['repeat'])
+        values = {'span':str(thing['span']),\
+                  't':str(thing['t']),
+                  'repeat':repeat_str,\
+                  'scale':str(thing['scale']),\
+                  'level':str(thing['level']),\
+                  'gap':str(thing['gap'])}
+        property_dialog([("t = ","t"),\
+                         ("span = ","span"),\
+                         ("new-middle-position = ","gap"),\
+                         ("curvature factor = ","level")],\
+                        values=values,parent=dic['window'])
+        try:
+            thing['level'] = float(values['level'])
+        except:
+            pass
+        try:
+            thing['gap'] = float(values['gap'])
+        except:
+            pass
+        if values['span'] != str(thing['span']):
+            try:
+                new_span = float(values['span'])
+            except:
+                pass
+            else:
+                thing['span'] = new_span
+                thing['repeat'] = thing['span']\
+                                  /(float(snippet['length'])*thing['scale'])
+                update_span(dic,thing)
+        if values['scale'] != str(thing['scale']):
+            try:
+                new_scale = float(values['scale'])
+            except:
+                pass
+            else:
+                thing['scale'] = new_scale
+                thing['repeat'] = thing['span']\
+                                  /(float(snippet['length'])*thing['scale'])
+                update_span(dic,thing)
+        if values['repeat'] != repeat_str:
+            try:
+                new_repeat = float(values['repeat'])
+            except:
+                pass
+            else:
+                thing['repeat'] = new_repeat
+                thing['span'] = float(thing['scale'])*float(snippet['length'])\
+                                *thing['repeat']
+                update_span(dic,thing)
+        if values['t'] != str(thing['t']):
+            try:
+                new_t = float(values['t'])
+            except:
+                pass
+            else:
+                thing['t'] = new_t
+                x = float(dic['width'])*new_t/float(dic['length'])
+                delta_x = x-thing['x']
+                thing['x'] = x
+                canvas = dic['canvas']
+                for obj in thing['*objects']:
+                    xys = canvas.coords(obj)
+                    for i in range(len(xys)):
+                        if not i%2:
+                            xys[i] += delta_x
+                    canvas.coords(obj,*xys)
+        make_marks(dic,thing)
+        
+
+    def set_delta(event, thing,snippet=snippet):
+        thing['old-x'] = event.x
+        thing['old-y'] = event.y
+        thing['old-level'] = thing['level']
+        thing['old-gap'] = thing['gap']
+
+       
+
+    def drag(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']
+        x = thing['x']+delta_x
+        y = thing['y']+delta_y
+        if y < thing['y-min']:
+            y = thing['y-min']
+        elif y > thing['y-max']:
+            y = thing['y-max']
+        delta_x = x-thing['x']
+        delta_y = y-thing['y']
+        t = float(x)*float(dic['length'])/float(dic['width'])
+        dic_extend(thing,{'x':x,'y':y,'t':t})
+        canvas = dic['canvas']
+        for obj in thing['*objects']:
+            xys = canvas.coords(obj)
+            for i in range(len(xys)):
+                if i%2:
+                    xys[i] += delta_y
+                else:
+                    xys[i] += delta_x
+            canvas.coords(obj,*xys)
+        make_marks(dic,thing)
+
+
+    def scale(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']
+        delta_t = float(delta_x)/float(dic['width'])*float(dic['length'])   
+        thing['gap'] = thing['old-gap'] + delta_t/thing['span']
+        thing['scale'] = thing['span']/(snippet['length']*thing['repeat'])
+        update_span(dic,thing)
+        
+
+    def span(event,dic,thing,snippet=snippet):
+        delta_x = event.x - thing['old-x']
+        delta_y = event.y - thing['old-y']        
+        delta_t = float(delta_x)/float(dic['width'])*float(dic['length'])
+        thing['span'] += delta_t
+        thing['level'] = thing['old-level'] - float(delta_y)/100.0        
+        thing['repeat'] = thing['span']/(snippet['length']*thing['scale'])
+        update_span(dic,thing)
+
+    def restore(dic,thing,snippet=snippet):
+        limb = thing['limb']
+        t = thing['t']
+        x = int(float(t)*float(dic['width'])/float(dic['length']))
+        thing['x'] = x
+        y = thing['y']
+        
+        y_min = dic['y_minmargins'][limb]
+        y_max = dic['y_margins'][limb]
+        
+        thing['y-min'] = y_min
+        thing['y-max'] = y_max-21
+
+        canvas = dic['canvas']
+        
+
+        w = int(thing['span']/float(dic['length'])*float(dic['width']))
+        if w < 50:
+            w = 50
+
+        box = canvas.create_rectangle(x,y,x+w,y+20,fill="#666600",outline="yellow")
+        text = canvas.create_text(x+2,y+2,text=snippet['name'],fill="yellow",\
+                                  anchor=NW)
+        
+        objects = [box, text]
+
+        thing['*objects'] = objects
+
+        menu = Menu(dic['window'],tearoff=0)
+
+        def properties(thing=thing,dic=dic,snippet=snippet):
+            snippet['property'](dic,thing)
+
+        def removeThing(thing=thing,dic=dic):
+            canvas = dic['canvas']
+            for o in thing['*objects']:
+                canvas.delete(o)
+            for m in thing['*marks']:
+                canvas.delete(m)
+            dic['things'].remove(thing)
+
+        menu.add_command(label="Copy",\
+                         command=lambda t=thing:copy_thing_to_global(t))
+        menu.add_command(label="Properties",command=properties)
+        menu.add_command(label="Remove",command=removeThing)
+        menu.add_separator()
+        menu.add_command(label=snippet['name'])
+        
+        thing['*menu'] = menu
+        
+        bind_canvas_objects_to_snippet(dic,canvas,objects,snippet,thing,\
+                                       properties)
+
+        thing['*marks'] = []
+        make_marks(dic,thing)
+        
+
+
+    def create(dic,t,limb,snippet=snippet):
+        x = dic['x']
+        y = dic['y']
+        
+        thing = {'type':'snippet',\
+                 'name':snippet['name'],\
+                 'limb':limb,\
+                 'scale':1.0,\
+                 'repeat':snippet['initial-length']/snippet['length'],\
+                 'span':snippet['initial-length'],\
+                 'level':snippet['initial-level'],\
+                 'gap':snippet['initial-gap'],\
+                 't':t,\
+                 'x':x,\
+                 'y':y}
+
+        restore(dic,thing)
+
+        return thing
+
+    dic_extend(snippet,{'apply':apply,\
+               'property':property,\
+               'set-delta':set_delta,\
+               'drag':drag,\
+               'scale':scale,\
+               'span':span,\
+               'create':create,\
+               'restore':restore,\
+               'priority':10,\
+               'length':1.0,\
+               'initial-level':1.6,\
+               'initial-gap':0.1,\
+               'initial-length':1.0,\
+               'name':'punch'})
+
+    return snippet
+    
