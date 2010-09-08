@@ -152,7 +152,7 @@ class SongEditor(object):
         self.tlabel = Label(self.time_container,text="@")
         self.tlabel.pack(side=RIGHT)
 
-        for i in range(16):
+        for i in range(16)[-1::-1]:
             def set_time_to(x=None,s=self,txt=str(i)):
                 s.time.delete(0, END)
                 s.time.insert(END,txt)
