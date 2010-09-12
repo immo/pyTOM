@@ -187,6 +187,30 @@ class SongEditor(object):
                                         add_to_text,\
                                         "Add "+txt+" line after insert line.")
 
+        def add_lot_of_text(x=None,s=self):
+            txt = """  grammar = g_2010
+  initial = 
+      bpm = 
+  length* = 
+  rhythms = 
+   things = """
+            line = int(s.text.subwidget("text").index("insert").split(".")[0])
+            lastline = int(s.text.subwidget("text").index(END).split(".")[0])
+            if line == lastline:
+                s.text.subwidget("text").insert("insert lineend","\n"+txt+"\n")
+            else:
+                s.text.subwidget("text").insert("insert lineend","\n"+txt)
+            s.text.subwidget("text").mark_set("insert","%i.%i"%(line+1,len(txt)))
+            s.colorize_text_widget()
+            s.text.subwidget("text").focus_set()
+                
+        quicktix.add_balloon_button(self.__dict__, "btn_txtlot",\
+                                        "line_starts","...",\
+                                        add_lot_of_text,\
+                                        "Add common stuff...")
+
+            
+
         self.right_buttons = Frame(self.window)
         self.right_buttons.grid(row=1,column=1,sticky=E)
 
