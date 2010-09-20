@@ -92,7 +92,7 @@ class SongEditor(object):
                                               undo=1,autoseparators=1)
         self.balloon = Balloon(self.window)
         self.tcontainer = Frame(self.window)
-        self.tcontainer.grid(row=0,column=1,sticky=N+S+E+W)
+        self.tcontainer.grid(row=0,column=1,rowspan=2,sticky=N+S+E+W)
         self.tvariable = ArrayVar(self.window)
         self.table = Table(self.tcontainer, rows=1,\
                            cols=1,titlerows=0,titlecols=0,roworigin=-1,\
@@ -119,8 +119,11 @@ class SongEditor(object):
                                  foreground="#FF00FF",font="courier 12 bold")
         self.table.tag_cell("heading","-1,0")
 
+        self.time_canvas = Canvas(self.window,height=120,background="#000000")
+        self.time_canvas.grid(row=1,column=0,sticky=E+W+N)
+
         self.time_container = Frame(self.window)
-        self.time_container.grid(row=1,column=0,sticky=W)
+        self.time_container.grid(row=2,column=0,sticky=W)
 
         self.time_container2 = Frame(self.time_container)
         self.time_container2.pack(side=RIGHT)
@@ -148,6 +151,8 @@ class SongEditor(object):
         self.time.pack(side=RIGHT)
         self.time.insert(END,"0")
 
+        self.time_canvas_factor = 1.0
+
 
         self.tlabel = Label(self.time_container,text="@")
         self.tlabel.pack(side=RIGHT)
@@ -162,7 +167,7 @@ class SongEditor(object):
                                         "Set @ time entry to "+str(i))
 
         self.line_starts = Frame(self.window)
-        self.line_starts.grid(row=2,column=0,columnspan=2,sticky=W)
+        self.line_starts.grid(row=3,column=0,columnspan=2,sticky=W)
 
         for txt in ["grammar=","length*=","bpm=","initial=","things=",\
                     "rhythms=","depth=","postprocess=",":","::",":::",\
@@ -212,7 +217,7 @@ class SongEditor(object):
             
 
         self.right_buttons = Frame(self.window)
-        self.right_buttons.grid(row=1,column=1,sticky=E)
+        self.right_buttons.grid(row=2,column=1,sticky=E)
 
         def save_cmd(x=None,s=self):
             s.save_to()
@@ -450,6 +455,48 @@ class SongEditor(object):
             if r.match(data):
                 new_type = n
                 break
+
+        self.time_canvas.delete(ALL)
+        
+        if new_type in ["things","rhythms"]:
+            if "=" in data:
+                object_data = map(lambda x:x.strip(),data[data.find("=")+1:].split(";"))
+                slice_data = {}
+                max_time = 0.0
+                for o in object_data:
+                    time = 0.0
+                    if "@" in o:
+                        try:
+                            time = float(o[o.find("@")+1:])
+                        except:
+                            pass
+                        o = o[:o.find("@")]
+                    if time in slice_data:
+                        slice_data[time].append(o)
+                    else:
+                        slice_data[time] = [o]
+                    if time > max_time:
+                        max_time = time
+                max_time += 2.0
+                width = float( self.time_canvas.winfo_width() )
+                offset = 0
+                for t in slice_data:
+                    txt = self.time_canvas.create_text(t*width/max_time,1,text=str(t),\
+                                                       fill="white",justify=LEFT,\
+                                                       anchor=NW)
+                    for i,o in zip(range(len(slice_data[t])),slice_data[t]):
+                        j = (i+offset) % 9
+                        txt = self.time_canvas.create_text(t*width/max_time,12+12*j,\
+                                                           text=o,fill="green",\
+                                                           justify=LEFT,anchor=NW)
+                        bbox = self.time_canvas.create_rectangle(*self.time_canvas\
+                                                                 .bbox(txt),\
+                                                                 fill="black")
+                        self.time_canvas.lift(txt)
+                    offset += len(slice_data[t])
+                self.time_canvas_factor = max_time/width
+
+                                                
 
         allbefore = "\n"+self.text.subwidget("text").get("0.0","%i.end"%line)
         if "\n:" in allbefore:
