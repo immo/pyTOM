@@ -152,6 +152,9 @@ class SongEditor(object):
         self.time.insert(END,"0")
 
         self.time_canvas_factor = 1.0
+        self.time_canvas_data = {}
+        self.time_canvas_drag_txt = None
+        self.time_canvas_drag_bbox = None
 
 
         self.tlabel = Label(self.time_container,text="@")
@@ -457,10 +460,18 @@ class SongEditor(object):
                 break
 
         self.time_canvas.delete(ALL)
+        self.time_canvas_drag_txt = None
+        self.time_canvas_drag_bbox = None
+        self.time_canvas_down_x = 0
+        self.time_canvas_drag_x = 0
         
         if new_type in ["things","rhythms"]:
             if "=" in data:
+                self.time_canvas.create_rectangle(0,0,self.time_canvas.winfo_width(),\
+                                                  self.time_canvas.winfo_height(),\
+                                                  fill="black")
                 object_data = map(lambda x:x.strip(),data[data.find("=")+1:].split(";"))
+                linestart_data = data[:data.find("=")+1]
                 slice_data = {}
                 max_time = 0.0
                 for o in object_data:
@@ -493,8 +504,158 @@ class SongEditor(object):
                                                                  .bbox(txt),\
                                                                  fill="black")
                         self.time_canvas.lift(txt)
+                        def button_down(event,s=self):
+                            s.time_canvas_down_x = event.x
+                            s.time_canvas_drag_x = event.x
+
+                        def drgfn(event,t=t,s=self,tx=txt,bbx=bbox):
+                            delta_x = event.x - s.time_canvas_down_x
+                            delta_t = delta_x * s.time_canvas_factor
+                            new_t = t+delta_t
+                            if int(event.state) & 1 == 0:
+                                new_t = round(new_t*12.0)/12.0
+                            if int(event.state) & 4:
+                                new_1 = round(new_t*2.0)/2.0
+                                new_2 = round(new_t*3.0)/3.0
+                                d_1 = abs(new_1-new_t)
+                                d_2 = abs(new_2-new_t)
+                                if d_1 < d_2:
+                                    new_t = new_1
+                                else:
+                                    new_t = new_2
+                            
+                            s.time_canvas.move(tx,event.x-s.time_canvas_drag_x,0)
+                            s.time_canvas.move(bbx,event.x-s.time_canvas_drag_x,0)
+                            s.time_canvas_drag_x = event.x
+                            s.time_canvas.lift(bbx)
+                            s.time_canvas.lift(tx)                            
+                            if s.time_canvas_drag_bbox != None:
+                                s.time_canvas.delete(s.time_canvas_drag_bbox)
+                            if s.time_canvas_drag_txt != None:
+                                s.time_canvas.delete(s.time_canvas_drag_txt)
+                            txt = s.time_canvas.create_text(new_t/s.time_canvas_factor,1,\
+                                                            text=str(new_t)[:6],\
+                                                            fill="yellow",anchor=NW,justify=LEFT)
+                            bbox = s.time_canvas.create_rectangle(*s.time_canvas.bbox(txt),\
+                                                                  fill="black")
+                            s.time_canvas.lift(txt)
+                            s.time_canvas_drag_bbox = bbox
+                            s.time_canvas_drag_txt = txt
+
+                        def movefn(event,t=t,s=self,o=o,l=len(linestart_data),n=line):
+                            delta_x = event.x - s.time_canvas_down_x
+                            delta_t = delta_x * s.time_canvas_factor
+                            new_t = t+delta_t
+                            if int(event.state) & 1 == 0:
+                                new_t = round(new_t*12.0)/12.0
+                            if int(event.state) & 4:
+                                new_1 = round(new_t*2.0)/2.0
+                                new_2 = round(new_t*3.0)/3.0
+                                d_1 = abs(new_1-new_t)
+                                d_2 = abs(new_2-new_t)
+                                if d_1 < d_2:
+                                    new_t = new_1
+                                else:
+                                    new_t = new_2
+                            time_str = str(float(new_t))
+                            dot_idx = time_str.index(".")
+                            new_part = o + "@" + time_str[:dot_idx+5]
+                            new_parts = [new_part]
+                            for time in s.time_canvas_data:
+                                d = s.time_canvas_data[time]
+                                if time == t:
+                                    idx = d.index(o)
+                                    d = d[:idx] + d[idx+1:]
+                                for name in d:
+                                    new_parts.append(name+"@"+str(time))
+                            new_str = " "+";".join(new_parts)
+                            s.text.subwidget("text").delete("%i.%i"%(n,l),"%i.end"%n)
+                            s.text.subwidget("text").insert("%i.%i"%(n,l),new_str)
+
+
+
+                        self.time_canvas.tag_bind(txt,"<B1-Motion>",drgfn)
+                        self.time_canvas.tag_bind(bbox,"<B1-Motion>",drgfn)
+                        self.time_canvas.tag_bind(txt,"<ButtonRelease-1>",movefn)
+                        self.time_canvas.tag_bind(bbox,"<ButtonRelease-1>",movefn)
+                        self.time_canvas.tag_bind(txt,"<Button-1>",button_down)
+                        self.time_canvas.tag_bind(bbox,"<Button-1>",button_down)
                     offset += len(slice_data[t])
                 self.time_canvas_factor = max_time/width
+                self.time_canvas_data = slice_data
+                def rbtndown(event,s=self):
+                    s.time_canvas_down_x = event.x
+                    new_t = float(event.x) * s.time_canvas_factor
+                    if int(event.state) & 1 == 0:
+                        new_t = round(new_t*12.0)/12.0
+                    if int(event.state) & 4:
+                        new_1 = round(new_t*2.0)/2.0
+                        new_2 = round(new_t*3.0)/3.0
+                        d_1 = abs(new_1-new_t)
+                        d_2 = abs(new_2-new_t)
+                        if d_1 < d_2:
+                            new_t = new_1
+                        else:
+                            new_t = new_2
+                    s.time_canvas_down_t = new_t
+                    s.time.delete(0, END)
+                    s.time.insert(END,str(new_t))
+
+                def rdrag(event,s=self):
+                    new_t = event.x * s.time_canvas_factor
+
+                    if int(event.state) & 1 == 0:
+                        new_t = round(new_t*12.0)/12.0
+                    if int(event.state) & 4:
+                        new_1 = round(new_t*2.0)/2.0
+                        new_2 = round(new_t*3.0)/3.0
+                        d_1 = abs(new_1-new_t)
+                        d_2 = abs(new_2-new_t)
+                        if d_1 < d_2:
+                            new_t = new_1
+                        else:
+                            new_t = new_2
+
+                    if s.time_canvas_drag_bbox != None:
+                        s.time_canvas.delete(s.time_canvas_drag_bbox)
+                    if s.time_canvas_drag_txt != None:
+                        s.time_canvas.delete(s.time_canvas_drag_txt)
+                    txt = s.time_canvas.create_text(new_t/s.time_canvas_factor,1,\
+                                                    text=str(new_t)[:6],\
+                                                    fill="yellow",anchor=NW,justify=LEFT)
+                    bbox = s.time_canvas.create_rectangle(*s.time_canvas.bbox(txt),\
+                                                          fill="black")
+                    s.time_canvas.lift(txt)
+                    s.time_canvas_drag_bbox = bbox
+                    s.time_canvas_drag_txt = txt
+
+
+                def rbtnup(event,s=self):
+                    new_t = float(event.x) * s.time_canvas_factor
+                    
+                    if int(event.state) & 1 == 0:
+                        new_t = round(new_t*12.0)/12.0
+                    if int(event.state) & 4:
+                        new_1 = round(new_t*2.0)/2.0
+                        new_2 = round(new_t*3.0)/3.0
+                        d_1 = abs(new_1-new_t)
+                        d_2 = abs(new_2-new_t)
+                        if d_1 < d_2:
+                            new_t = new_1
+                        else:
+                            new_t = new_2
+                    
+                    new_t = abs(new_t-s.time_canvas_down_t)
+                    if new_t > 0.3:
+                        s.time_offset.delete(0, END)
+                        s.time_offset.insert(END,str(new_t))
+
+
+
+
+                self.time_canvas.tag_bind(ALL,"<Button-3>",rbtndown)
+                self.time_canvas.tag_bind(ALL,"<B3-Motion>",rdrag)
+                self.time_canvas.tag_bind(ALL,"<ButtonRelease-3>",rbtnup)                
 
                                                 
 
