@@ -143,7 +143,9 @@ class ChordletEditor(object):
             s.update_table()
 
         self.table.bind("<Button-1>",left_click)
+        self.table.bind("<B1-Motion>",left_click)
         self.table.bind("<Button-3>",right_click)
+        self.table.bind("<B3-Motion>",right_click)        
 
         self.stylevar = StringVar()
         self.stylevar.set(" ")
