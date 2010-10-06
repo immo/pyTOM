@@ -60,6 +60,12 @@ class RhythmletEditor(object):
         self.scroll_callback = ScrollDummy(self.table)
         self.scrollbar.config(command=self.scroll_callback.yview)
         self.table.config(yscrollcommand=self.scrollbar.set)
+        def scroll_up(event,parent=self):
+            parent.table.yview_scroll(-1,"unit")
+
+        def scroll_down(event,parent=self):
+            parent.table.yview_scroll(1,"unit")
+            
         def left_button(event,parent=self):
             row,col = parent.table.index("@%i,%i"%(event.x,event.y)).split(',')
             row = int(row)
@@ -147,10 +153,11 @@ class RhythmletEditor(object):
         self.table.bind("<Control-Double-Button-1>",copy_all_action)
         self.table.bind("<Control-space>",copy_all_action)
         self.table.bind("<space>",copy_row_action)                        
-        self.table.bind("<Button-4>",left_button)        
+
         self.table.bind("<Button-3>",right_button)
-        self.table.bind("<Double-Button-3>",db_right_button)        
-        self.table.bind("<Button-5>",right_button)
+        self.table.bind("<Double-Button-3>",db_right_button)
+        self.window.bind("<Button-4>",scroll_up)                
+        self.window.bind("<Button-5>",scroll_down)
 
         priority_list = "1234567890poiuztrewqasdfghjklmnbvcx"
         for key,nbr in zip(priority_list,range(len(priority_list)))\
@@ -241,10 +248,10 @@ class RhythmletEditor(object):
     def add_fraction_time_grid(self,d):
         if self.reference.times:
             t1 = (max(self.reference.times) // 1) + 1
-            if t1 < 4:
-                t1 = 4
+            if t1 < 16:
+                t1 = 16
         else:
-            t1 = 4
+            t1 = 16
         t0 = 0
         i = int(math.floor(float(t1-t0)/float(d)))
         time_grid = [t0 + k*d for k in range(i)]
@@ -280,7 +287,7 @@ class RhythmletEditor(object):
 
         dialog_vars['d'].set('1/4')
         dialog_vars['t0'].set('0')
-        dialog_vars['t1'].set('4')
+        dialog_vars['t1'].set('16')
         
         def cancel_action(x=None,v=dialog_vars,d=dialog):
             v['cancel'] = True
